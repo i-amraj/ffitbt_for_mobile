@@ -84,7 +84,13 @@ class MainActivity : AppCompatActivity() {
             snack("🧹 Print history cleared.")
         }
 
+        binding.tvRefreshLogs.setOnClickListener {
+            loadPrintLogs()
+            snack("🔄 Queue & status refreshed.")
+        }
+
         updateUI()
+        checkAppVersion()
     }
 
     override fun onStart() {
@@ -656,5 +662,64 @@ class MainActivity : AppCompatActivity() {
             snack("❌ Reprint failed. Document cache might not be available.")
         }
         loadPrintLogs()
+    }
+
+    private fun checkAppVersion() {
+        val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        
+        executor.submit {
+            try {
+                val url = java.net.URL("https://raw.githubusercontent.com/i-amraj/ffitbt_for_mobile/main/version.json")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                
+                if (conn.responseCode == 200) {
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    val json = org.json.JSONObject(text)
+                    val latestCode = json.getInt("versionCode")
+                    val latestName = json.getString("versionName")
+                    val downloadUrl = json.getString("downloadUrl")
+                    
+                    val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        packageManager.getPackageInfo(packageName, android.content.pm.PackageManager.PackageInfoFlags.of(0))
+                    } else {
+                        packageManager.getPackageInfo(packageName, 0)
+                    }
+                    val currentCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        packageInfo.longVersionCode
+                    } else {
+                        packageInfo.versionCode.toLong()
+                    }
+                    
+                    if (latestCode > currentCode) {
+                        handler.post {
+                            showUpdateModal(latestName, downloadUrl)
+                        }
+                    }
+                }
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun showUpdateModal(latestName: String, downloadUrl: String) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("✨ New Update Available")
+            .setMessage("Version $latestName of FFit BT is now available. Please update the application for improved stability, faster printing, and new queue controls.")
+            .setCancelable(true)
+            .setPositiveButton("UPDATE NOW") { _, _ ->
+                try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(downloadUrl))
+                    startActivity(intent)
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
+            }
+            .setNegativeButton("LATER", null)
+            .show()
     }
 }

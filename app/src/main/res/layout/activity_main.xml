@@ -599,6 +599,19 @@
                                 android:letterSpacing="0.12"/>
 
                             <TextView
+                                android:id="@+id/tvRefreshLogs"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="REFRESH"
+                                android:textColor="@color/cyan"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:layout_marginEnd="14dp"/>
+
+                            <TextView
                                 android:id="@+id/tvClearLogs"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
