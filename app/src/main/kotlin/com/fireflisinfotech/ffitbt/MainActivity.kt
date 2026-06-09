@@ -670,21 +670,21 @@ class MainActivity : AppCompatActivity() {
         
         executor.submit {
             try {
-                val timestamp = System.currentTimeMillis()
-                val url = java.net.URL("https://raw.githubusercontent.com/i-amraj/ffitbt_for_mobile/main/version.json?t=$timestamp")
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)")
-                conn.useCaches = false
+                // Use GitHub API to bypass CDN caching — always returns live content
+                val apiUrl = java.net.URL("https://api.github.com/repos/i-amraj/ffitbt_for_mobile/contents/version.json")
+                val apiConn = apiUrl.openConnection() as java.net.HttpURLConnection
+                apiConn.requestMethod = "GET"
+                apiConn.connectTimeout = 10000
+                apiConn.readTimeout = 10000
+                apiConn.setRequestProperty("Accept", "application/vnd.github.v3.raw")
+                apiConn.setRequestProperty("User-Agent", "FFitBT-Android-App")
+                apiConn.useCaches = false
                 
-                android.util.Log.d("FFitUpdate", "Checking version from: $url")
-                val responseCode = conn.responseCode
-                android.util.Log.d("FFitUpdate", "Response Code: $responseCode")
+                val responseCode = apiConn.responseCode
+                android.util.Log.d("FFitUpdate", "GitHub API Response: $responseCode")
                 
                 if (responseCode == 200) {
-                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    val text = apiConn.inputStream.bufferedReader().use { it.readText() }
                     val json = org.json.JSONObject(text)
                     val latestCode = json.getInt("versionCode")
                     val latestName = json.getString("versionName")
@@ -702,7 +702,7 @@ class MainActivity : AppCompatActivity() {
                         packageInfo.versionCode.toLong()
                     }
                     
-                    android.util.Log.d("FFitUpdate", "Latest Code: $latestCode, Current Code: $currentCode")
+                    android.util.Log.d("FFitUpdate", "Latest: $latestCode | Installed: $currentCode")
                     
                     if (latestCode > currentCode) {
                         handler.post {
@@ -710,7 +710,7 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 } else {
-                    android.util.Log.e("FFitUpdate", "Failed to fetch version: HTTP $responseCode")
+                    android.util.Log.e("FFitUpdate", "GitHub API failed: HTTP $responseCode")
                 }
             } catch (e: java.lang.Exception) {
                 android.util.Log.e("FFitUpdate", "Exception checking version", e)
