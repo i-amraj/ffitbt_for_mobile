@@ -24,6 +24,69 @@ import android.printservice.PrinterDiscoverySession
  */
 class FFitPrintService : PrintService() {
 
+    companion object {
+        val activeJobs = java.util.Collections.synchronizedList(mutableListOf<PrintJob>())
+        private val printExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+        fun cancelJob(context: android.content.Context, jobId: String): Boolean {
+            synchronized(activeJobs) {
+                val iterator = activeJobs.iterator()
+                while (iterator.hasNext()) {
+                    val job = iterator.next()
+                    val idStr = try {
+                        job.info?.id?.toString() ?: ""
+                    } catch (e: Exception) {
+                        ""
+                    }
+                    if (idStr == jobId) {
+                        try {
+                            job.cancel()
+                            val db = PrintDatabaseHelper(context)
+                            db.updateStatus(jobId, "cancelled")
+                            iterator.remove()
+                            
+                            // Send broadcast to update UI
+                            context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            return true
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+            // If not found in active jobs, it might already be done, but we still mark it cancelled in DB if possible
+            try {
+                val db = PrintDatabaseHelper(context)
+                db.updateStatus(jobId, "cancelled")
+                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return false
+        }
+    }
+
+    private fun isJobCancelledMain(printJob: PrintJob): Boolean {
+        var cancelled = false
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        handler.post {
+            try {
+                cancelled = printJob.isCancelled
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                latch.countDown()
+            }
+        }
+        try {
+            latch.await(1, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return cancelled
+    }
+
     override fun onCreatePrinterDiscoverySession(): PrinterDiscoverySession {
         return FFitDiscoverySession(this)
     }
@@ -31,7 +94,6 @@ class FFitPrintService : PrintService() {
     override fun onPrintJobQueued(printJob: PrintJob) {
         android.util.Log.e("FFit", "onPrintJobQueued called!")
         val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-        printJob.start()
 
         // ── MUST READ DOCUMENT ON MAIN THREAD ──
         // Accessing printJob.document from a background thread throws IllegalAccessError!
@@ -44,111 +106,133 @@ class FFitPrintService : PrintService() {
 
         // Get localId on main thread to prevent "must be called from main thread" exception
         val localId = printJob.info?.printerId?.localId ?: ""
+        val jobId = printJob.info?.id?.toString() ?: System.currentTimeMillis().toString()
+        val title = printJob.info?.label ?: "Print Job"
+        val prefs = applicationContext.getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
+        val mode = if (localId == "wifi_printer") "wifi" else "bluetooth"
+        val target = if (mode == "wifi") PrinterPrefs.getSavedIp(prefs) else localId
 
-        Thread {
+        // Log the queued job in db
+        val db = PrintDatabaseHelper(applicationContext)
+        db.insertLog(jobId, title, mode, target, "queued")
+        activeJobs.add(printJob)
+
+        // Broadcast queue update
+        sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+
+        printExecutor.submit {
             try {
-                android.util.Log.e("FFit", "Starting background thread for print job")
-                val prefs = applicationContext.getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
-                val mode = if (localId == "wifi_printer") "wifi" else "bluetooth"
+                if (isJobCancelledMain(printJob)) {
+                    activeJobs.remove(printJob)
+                    db.updateStatus(jobId, "cancelled")
+                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    return@submit
+                }
 
+                db.updateStatus(jobId, "printing")
+                sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+
+                // Start print job on main thread
+                var startOk = false
+                val startLatch = java.util.concurrent.CountDownLatch(1)
+                mainHandler.post {
+                    try {
+                        startOk = printJob.start()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        startLatch.countDown()
+                    }
+                }
+                startLatch.await()
+
+                if (!startOk && !isJobCancelledMain(printJob)) {
+                    db.updateStatus(jobId, "failed", "Could not start print job.")
+                    activeJobs.remove(printJob)
+                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    return@submit
+                }
+
+                android.util.Log.e("FFit", "Starting background print logic")
                 if (mode == "wifi") {
                     val ip = PrinterPrefs.getSavedIp(prefs)
                     val port = PrinterPrefs.getSavedPort(prefs)
-                    android.util.Log.e("FFit", "WiFi Mode: Connecting to $ip:$port...")
-                    
                     if (!WifiPrinter.isConnected) {
                         val connected = WifiPrinter.connect(ip, port)
                         if (!connected) {
-                            android.util.Log.e("FFit", "WifiPrinter.connect($ip, $port) failed!")
-                            mainHandler.post {
-                                printJob.fail(
-                                    "Cannot connect to WiFi printer at $ip:$port. " +
-                                    "Make sure the printer is ON and connected to the same network."
-                                )
-                            }
-                            return@Thread
+                            db.updateStatus(jobId, "failed", "Cannot connect to WiFi printer at $ip:$port.")
+                            mainHandler.post { printJob.fail("Cannot connect to WiFi printer at $ip:$port.") }
+                            activeJobs.remove(printJob)
+                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            return@submit
                         }
                     }
                 } else {
-                    // ── Auto-connect using target Bluetooth MAC ──
                     if (!BluetoothPrinter.isConnected) {
-                        android.util.Log.e("FFit", "Printer not connected. Attempting auto-connect to $localId...")
-                        val name = PrinterPrefs.getSavedName(prefs)
-
                         if (localId.isEmpty()) {
-                            android.util.Log.e("FFit", "No Bluetooth MAC address received in printerId!")
-                            mainHandler.post {
-                                printJob.fail(
-                                    "No printer configured. Open FFit BT app, " +
-                                    "scan and connect your printer first."
-                                )
-                            }
-                            return@Thread
+                            db.updateStatus(jobId, "failed", "No Bluetooth MAC address configured.")
+                            mainHandler.post { printJob.fail("No printer configured.") }
+                            activeJobs.remove(printJob)
+                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            return@submit
                         }
-
+                        val name = PrinterPrefs.getSavedName(prefs)
                         val connected = BluetoothPrinter.connect(localId)
                         if (!connected) {
-                            android.util.Log.e("FFit", "BluetoothPrinter.connect($localId) returned false!")
-                            mainHandler.post {
-                                printJob.fail(
-                                    "Cannot connect to $name. " +
-                                    "Make sure the printer is ON and in Bluetooth range."
-                                )
-                            }
-                            return@Thread
+                            db.updateStatus(jobId, "failed", "Cannot connect to $name.")
+                            mainHandler.post { printJob.fail("Cannot connect to $name.") }
+                            activeJobs.remove(printJob)
+                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            return@submit
                         }
-                        android.util.Log.e("FFit", "Connected successfully!")
                     }
                 }
 
-                android.util.Log.e("FFit", "Copying PFD to temp file...")
+                if (isJobCancelledMain(printJob)) {
+                    db.updateStatus(jobId, "cancelled")
+                    mainHandler.post { printJob.cancel() }
+                    activeJobs.remove(printJob)
+                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    return@submit
+                }
 
-                // PdfRenderer requires a seekable file descriptor. The Spooler's PFD might be a pipe.
-                val tempPdf = java.io.File(cacheDir, "temp_print_job.pdf")
+                // Render PDF
+                val tempPdf = java.io.File(cacheDir, "temp_print_job_${jobId}.pdf")
                 java.io.FileInputStream(pfd.fileDescriptor).use { input ->
                     java.io.FileOutputStream(tempPdf).use { output ->
                         input.copyTo(output)
                     }
                 }
-                
-                // Open seekable fd
+
                 val seekablePfd = android.os.ParcelFileDescriptor.open(
                     tempPdf, android.os.ParcelFileDescriptor.MODE_READ_ONLY
                 )
 
-                // ── Render and print each PDF page ──
-                // 58mm thermal = 384px wide at 203 dpi
                 val printWidthPx = 384
                 val renderer = android.graphics.pdf.PdfRenderer(seekablePfd)
                 val pageCount = renderer.pageCount
 
                 for (pageIdx in 0 until pageCount) {
+                    if (isJobCancelledMain(printJob)) {
+                        break
+                    }
                     val page = renderer.openPage(pageIdx)
                     val scale  = printWidthPx.toFloat() / page.width
-                    // Height is calculated from scale, capped at 12000 to prevent OOM
                     val renderH = (page.height * scale).toInt().coerceIn(1, 12000)
 
-                    val bmp = Bitmap.createBitmap(
-                        printWidthPx, renderH, Bitmap.Config.ARGB_8888
-                    )
+                    val bmp = Bitmap.createBitmap(printWidthPx, renderH, Bitmap.Config.ARGB_8888)
                     bmp.eraseColor(Color.WHITE)
-                    page.render(
-                        bmp, null, null,
-                        android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT
-                    )
+                    page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
                     page.close()
 
                     val croppedBmp = cropWhitespace(bmp)
-
                     val esc = EscPos()
                     esc.add(EscPos.INIT)
                     esc.add(EscPos.ALIGN_CENTER)
                     esc.addRaster(bitmapToRaster(croppedBmp))
-                    
+
                     bmp.recycle()
-                    if (croppedBmp !== bmp) {
-                        croppedBmp.recycle()
-                    }
+                    if (croppedBmp !== bmp) croppedBmp.recycle()
 
                     if (mode == "wifi") {
                         WifiPrinter.send(esc.build())
@@ -159,20 +243,28 @@ class FFitPrintService : PrintService() {
                 renderer.close()
                 seekablePfd.close()
                 tempPdf.delete()
-                sendCompanyFooter(mode)
-                if (mode == "wifi") {
-                    WifiPrinter.disconnect()
+
+                if (!isJobCancelledMain(printJob)) {
+                    sendCompanyFooter(mode)
+                    if (mode == "wifi") {
+                        WifiPrinter.disconnect()
+                    }
+                    db.updateStatus(jobId, "completed")
+                    mainHandler.post { printJob.complete() }
+                } else {
+                    db.updateStatus(jobId, "cancelled")
+                    mainHandler.post { printJob.cancel() }
                 }
-                // ── Print job complete ──
-                android.util.Log.e("FFit", "Print job complete! Calling printJob.complete()")
-                mainHandler.post { printJob.complete() }
 
             } catch (e: Throwable) {
-                android.util.Log.e("FFit", "CRASH PREVENTED: ", e)
                 e.printStackTrace()
+                db.updateStatus(jobId, "failed", e.message ?: "Unknown error")
                 mainHandler.post { printJob.fail("Crash prevented: ${e.message}") }
+            } finally {
+                activeJobs.remove(printJob)
+                sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
             }
-        }.start()
+        }
     }
 
     /**

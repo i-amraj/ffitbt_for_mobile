@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/selectableItemBackground"
+    android:padding="14dp"
+    android:layout_marginBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Status Dot -->
+        <View
+            android:id="@+id/logStatusDot"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/dot_red"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tvLogTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bill #BILL-20260609-90"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:ellipsize="end"
+                android:singleLine="true"/>
+
+            <TextView
+                android:id="@+id/tvLogDetail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WiFi (192.168.1.112)"
+                android:textColor="#94A3B8"
+                android:textSize="11sp"
+                android:layout_marginTop="2dp"
+                android:fontFamily="monospace"/>
+        </LinearLayout>
+
+        <!-- Status Tag / Time -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/tvLogTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="15:28"
+                android:textColor="#64748B"
+                android:textSize="11sp"/>
+
+            <TextView
+                android:id="@+id/tvLogStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="QUEUED"
+                android:textColor="#F59E0B"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <!-- Cancel Button (Only visible for queued jobs) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelLogJob"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="12dp"
+            android:text="CANCEL"
+            android:textColor="#EF4444"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            app:backgroundTint="#1AEF4444"
+            app:cornerRadius="6dp"
+            app:strokeColor="#EF4444"
+            app:strokeWidth="0.5dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <!-- Error message text, hidden by default -->
+    <TextView
+        android:id="@+id/tvLogErrorMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginStart="22dp"
+        android:text="Connection refused"
+        android:textColor="#EF4444"
+        android:textSize="11sp"
+        android:visibility="gone"/>
+
+</LinearLayout>

@@ -27,8 +27,16 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val prefs by lazy { getSharedPreferences("ffitbt", Context.MODE_PRIVATE) }
+    private val dbHelper by lazy { PrintDatabaseHelper(this) }
+    private var logAdapter: PrintLogAdapter? = null
 
     private val BT_PERM_CODE = 101
+
+    private val queueReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: android.content.Intent?) {
+            loadPrintLogs()
+        }
+    }
 
     // ─────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +71,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.tvClearLogs.setOnClickListener {
+            dbHelper.clearAllLogs()
+            loadPrintLogs()
+            snack("🧹 Print history cleared.")
+        }
+
         updateUI()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            queueReceiver,
+            android.content.IntentFilter("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"),
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        loadPrintLogs()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            unregisterReceiver(queueReceiver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onResume() {
@@ -563,4 +597,36 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(msg: String) =
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+
+    private fun loadPrintLogs() {
+        val logs = dbHelper.getAllLogs()
+        if (logs.isEmpty()) {
+            binding.tvQueueEmpty.visibility = View.VISIBLE
+            binding.rvPrintLogs.visibility = View.GONE
+        } else {
+            binding.tvQueueEmpty.visibility = View.GONE
+            binding.rvPrintLogs.visibility = View.VISIBLE
+            
+            if (logAdapter == null) {
+                logAdapter = PrintLogAdapter(logs) { log ->
+                    cancelPrintJob(log)
+                }
+                binding.rvPrintLogs.layoutManager = LinearLayoutManager(this)
+                binding.rvPrintLogs.adapter = logAdapter
+            } else {
+                logAdapter?.updateData(logs)
+            }
+        }
+    }
+
+    private fun cancelPrintJob(log: PrintLog) {
+        snack("⏳ Attempting to cancel print job...")
+        val success = FFitPrintService.cancelJob(this, log.systemJobId)
+        if (success) {
+            snack("✅ Print job successfully cancelled.")
+        } else {
+            snack("ℹ️ Cancel request sent for print job.")
+        }
+        loadPrintLogs()
+    }
 }

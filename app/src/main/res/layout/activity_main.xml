@@ -565,6 +565,75 @@
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
+                <!-- ── PRINT QUEUE & LOGS CARD ── -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cardQueueLogs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    app:cardBackgroundColor="@color/card_bg"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="14dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="PRINT QUEUE &amp; LOG HISTORY"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.12"/>
+
+                            <TextView
+                                android:id="@+id/tvClearLogs"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="CLEAR ALL"
+                                android:textColor="#EF4444"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:padding="4dp"/>
+                        </LinearLayout>
+
+                        <!-- Empty state -->
+                        <TextView
+                            android:id="@+id/tvQueueEmpty"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="No recent print jobs."
+                            android:textColor="@color/text_secondary"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- List of Print Logs -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rvPrintLogs"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false"
+                            android:visibility="gone"/>
+
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
             </LinearLayout>
 
             <!-- Footer -->
