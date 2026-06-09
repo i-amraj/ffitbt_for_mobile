@@ -721,18 +721,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun showUpdateModal(latestName: String, downloadUrl: String) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("✨ New Update Available")
-            .setMessage("Version $latestName of FFit BT is now available. Please update the application for improved stability, faster printing, and new queue controls.")
-            .setCancelable(true)
+            .setTitle("✨ Critical Update Required")
+            .setMessage("Version $latestName of FFit BT is now available. This update is required to continue using the application for print logs and queue management.")
+            .setCancelable(false)
             .setPositiveButton("UPDATE NOW") { _, _ ->
                 try {
                     val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(downloadUrl))
                     startActivity(intent)
+                    // Finish the activity so the user cannot use the app without updating
+                    finish()
                 } catch (e: java.lang.Exception) {
                     e.printStackTrace()
                 }
             }
-            .setNegativeButton("LATER", null)
             .show()
     }
 }
