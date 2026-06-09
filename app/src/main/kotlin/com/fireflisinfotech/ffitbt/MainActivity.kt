@@ -670,13 +670,20 @@ class MainActivity : AppCompatActivity() {
         
         executor.submit {
             try {
-                val url = java.net.URL("https://raw.githubusercontent.com/i-amraj/ffitbt_for_mobile/main/version.json")
+                val timestamp = System.currentTimeMillis()
+                val url = java.net.URL("https://raw.githubusercontent.com/i-amraj/ffitbt_for_mobile/main/version.json?t=$timestamp")
                 val conn = url.openConnection() as java.net.HttpURLConnection
                 conn.requestMethod = "GET"
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)")
+                conn.useCaches = false
                 
-                if (conn.responseCode == 200) {
+                android.util.Log.d("FFitUpdate", "Checking version from: $url")
+                val responseCode = conn.responseCode
+                android.util.Log.d("FFitUpdate", "Response Code: $responseCode")
+                
+                if (responseCode == 200) {
                     val text = conn.inputStream.bufferedReader().use { it.readText() }
                     val json = org.json.JSONObject(text)
                     val latestCode = json.getInt("versionCode")
@@ -691,16 +698,22 @@ class MainActivity : AppCompatActivity() {
                     val currentCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                         packageInfo.longVersionCode
                     } else {
+                        @Suppress("DEPRECATION")
                         packageInfo.versionCode.toLong()
                     }
+                    
+                    android.util.Log.d("FFitUpdate", "Latest Code: $latestCode, Current Code: $currentCode")
                     
                     if (latestCode > currentCode) {
                         handler.post {
                             showUpdateModal(latestName, downloadUrl)
                         }
                     }
+                } else {
+                    android.util.Log.e("FFitUpdate", "Failed to fetch version: HTTP $responseCode")
                 }
             } catch (e: java.lang.Exception) {
+                android.util.Log.e("FFitUpdate", "Exception checking version", e)
                 e.printStackTrace()
             }
         }
