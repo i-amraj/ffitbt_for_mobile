@@ -12,7 +12,8 @@ import java.util.Locale
 
 class PrintLogAdapter(
     private var logs: List<PrintLog>,
-    private val onCancelClick: (PrintLog) -> Unit
+    private val onCancelClick: (PrintLog) -> Unit,
+    private val onRetryClick: (PrintLog) -> Unit
 ) : RecyclerView.Adapter<PrintLogAdapter.VH>() {
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
@@ -22,6 +23,7 @@ class PrintLogAdapter(
         val tvLogTime: TextView = view.findViewById(R.id.tvLogTime)
         val tvLogStatusText: TextView = view.findViewById(R.id.tvLogStatusText)
         val btnCancelLogJob: MaterialButton = view.findViewById(R.id.btnCancelLogJob)
+        val btnRetryLogJob: MaterialButton = view.findViewById(R.id.btnRetryLogJob)
         val tvLogErrorMsg: TextView = view.findViewById(R.id.tvLogErrorMsg)
     }
 
@@ -55,24 +57,32 @@ class PrintLogAdapter(
                 holder.tvLogStatusText.setTextColor(0xFFF59E0B.toInt())
                 holder.btnCancelLogJob.visibility = View.VISIBLE
                 holder.btnCancelLogJob.setOnClickListener { onCancelClick(log) }
+                holder.btnRetryLogJob.visibility = View.GONE
                 holder.tvLogErrorMsg.visibility = View.GONE
             }
             "printing" -> {
                 holder.logStatusDot.setBackgroundResource(R.drawable.dot_blue)
                 holder.tvLogStatusText.setTextColor(0xFF38BDF8.toInt())
-                holder.btnCancelLogJob.visibility = View.GONE
+                // Allow cancelling during printing state
+                holder.btnCancelLogJob.visibility = View.VISIBLE
+                holder.btnCancelLogJob.setOnClickListener { onCancelClick(log) }
+                holder.btnRetryLogJob.visibility = View.GONE
                 holder.tvLogErrorMsg.visibility = View.GONE
             }
             "completed" -> {
                 holder.logStatusDot.setBackgroundResource(R.drawable.dot_green)
                 holder.tvLogStatusText.setTextColor(0xFF22C55E.toInt())
                 holder.btnCancelLogJob.visibility = View.GONE
+                holder.btnRetryLogJob.visibility = View.VISIBLE
+                holder.btnRetryLogJob.setOnClickListener { onRetryClick(log) }
                 holder.tvLogErrorMsg.visibility = View.GONE
             }
             "failed" -> {
                 holder.logStatusDot.setBackgroundResource(R.drawable.dot_red)
                 holder.tvLogStatusText.setTextColor(0xFFEF4444.toInt())
                 holder.btnCancelLogJob.visibility = View.GONE
+                holder.btnRetryLogJob.visibility = View.VISIBLE
+                holder.btnRetryLogJob.setOnClickListener { onRetryClick(log) }
                 if (!log.errorMsg.isNullOrEmpty()) {
                     holder.tvLogErrorMsg.text = log.errorMsg
                     holder.tvLogErrorMsg.visibility = View.VISIBLE
@@ -84,12 +94,15 @@ class PrintLogAdapter(
                 holder.logStatusDot.setBackgroundResource(R.drawable.dot_grey)
                 holder.tvLogStatusText.setTextColor(0xFF64748B.toInt())
                 holder.btnCancelLogJob.visibility = View.GONE
+                holder.btnRetryLogJob.visibility = View.VISIBLE
+                holder.btnRetryLogJob.setOnClickListener { onRetryClick(log) }
                 holder.tvLogErrorMsg.visibility = View.GONE
             }
             else -> {
                 holder.logStatusDot.setBackgroundResource(R.drawable.dot_grey)
                 holder.tvLogStatusText.setTextColor(0xFF64748B.toInt())
                 holder.btnCancelLogJob.visibility = View.GONE
+                holder.btnRetryLogJob.visibility = View.GONE
                 holder.tvLogErrorMsg.visibility = View.GONE
             }
         }

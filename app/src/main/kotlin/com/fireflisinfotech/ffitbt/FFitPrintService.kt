@@ -14,21 +14,21 @@ import android.printservice.PrinterDiscoverySession
 /**
  * FFitPrintService — Registers FFit BT as a system-level Android print service.
  *
- * KEY FIXES:
- * 1. Auto-reconnects using saved MAC — works even when app is closed.
+ * KEY FEATURES:
+ * 1. Auto-reconnects using saved MAC/IP — works even when app is closed.
  * 2. PrinterCapabilitiesInfo is set so print button is never disabled.
- * 3. Footer uses ESC/POS CP437 heart (♥) instead of Unicode emoji.
- *
- * The user connects once in the app → saved to prefs → PrintService reads
- * that MAC and reconnects on every print job automatically.
+ * 3. Sequential Queue Processing via SingleThreadExecutor.
+ * 4. Job Cancellation & Reprinting support directly from SQLite log history.
  */
 class FFitPrintService : PrintService() {
 
     companion object {
         val activeJobs = java.util.Collections.synchronizedList(mutableListOf<PrintJob>())
+        val cancelledRestartJobs = java.util.Collections.synchronizedSet(mutableSetOf<String>())
         private val printExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
         fun cancelJob(context: android.content.Context, jobId: String): Boolean {
+            // 1. Try to cancel system print job
             synchronized(activeJobs) {
                 val iterator = activeJobs.iterator()
                 while (iterator.hasNext()) {
@@ -44,8 +44,6 @@ class FFitPrintService : PrintService() {
                             val db = PrintDatabaseHelper(context)
                             db.updateStatus(jobId, "cancelled")
                             iterator.remove()
-                            
-                            // Send broadcast to update UI
                             context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
                             return true
                         } catch (e: Exception) {
@@ -54,15 +52,147 @@ class FFitPrintService : PrintService() {
                     }
                 }
             }
-            // If not found in active jobs, it might already be done, but we still mark it cancelled in DB if possible
+            
+            // 2. If it's a restarted/retry job, add to cancelled restarted jobs set
+            cancelledRestartJobs.add(jobId)
             try {
                 val db = PrintDatabaseHelper(context)
                 db.updateStatus(jobId, "cancelled")
                 context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                return true
             } catch (e: Exception) {
                 e.printStackTrace()
             }
             return false
+        }
+
+        fun restartPrintJob(context: android.content.Context, jobId: String): Boolean {
+            val db = PrintDatabaseHelper(context)
+            val logs = db.getAllLogs()
+            val targetLog = logs.find { it.systemJobId == jobId } ?: return false
+
+            val cacheFile = java.io.File(context.cacheDir, "job_${jobId}.pdf")
+            if (!cacheFile.exists()) {
+                android.util.Log.e("FFit", "Cache file job_${jobId}.pdf does not exist!")
+                return false
+            }
+
+            // Remove from cancelled restart set if it was there before
+            cancelledRestartJobs.remove(jobId)
+
+            // Mark status as queued in DB
+            db.updateStatus(jobId, "queued")
+            context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+
+            printExecutor.submit {
+                val prefs = context.getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
+                val mode = targetLog.printerType
+                val target = targetLog.printerTarget
+
+                try {
+                    if (cancelledRestartJobs.contains(jobId)) {
+                        db.updateStatus(jobId, "cancelled")
+                        cancelledRestartJobs.remove(jobId)
+                        context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                        return@submit
+                    }
+
+                    db.updateStatus(jobId, "printing")
+                    context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+
+                    // Connect to printer
+                    if (mode == "wifi") {
+                        val ip = PrinterPrefs.getSavedIp(prefs)
+                        val port = PrinterPrefs.getSavedPort(prefs)
+                        if (!WifiPrinter.isConnected) {
+                            val connected = WifiPrinter.connect(ip, port)
+                            if (!connected) {
+                                db.updateStatus(jobId, "failed", "Cannot connect to WiFi printer at $ip:$port.")
+                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                return@submit
+                            }
+                        }
+                    } else {
+                        if (!BluetoothPrinter.isConnected) {
+                            if (target.isEmpty()) {
+                                db.updateStatus(jobId, "failed", "No Bluetooth MAC address configured.")
+                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                return@submit
+                            }
+                            val name = PrinterPrefs.getSavedName(prefs)
+                            val connected = BluetoothPrinter.connect(target)
+                            if (!connected) {
+                                db.updateStatus(jobId, "failed", "Cannot connect to $name.")
+                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                return@submit
+                            }
+                        }
+                    }
+
+                    if (cancelledRestartJobs.contains(jobId)) {
+                        db.updateStatus(jobId, "cancelled")
+                        cancelledRestartJobs.remove(jobId)
+                        context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                        return@submit
+                    }
+
+                    // Render and print PDF
+                    val seekablePfd = android.os.ParcelFileDescriptor.open(
+                        cacheFile, android.os.ParcelFileDescriptor.MODE_READ_ONLY
+                    )
+                    val printWidthPx = 384
+                    val renderer = android.graphics.pdf.PdfRenderer(seekablePfd)
+                    val pageCount = renderer.pageCount
+
+                    for (pageIdx in 0 until pageCount) {
+                        if (cancelledRestartJobs.contains(jobId)) {
+                            break
+                        }
+                        val page = renderer.openPage(pageIdx)
+                        val scale = printWidthPx.toFloat() / page.width
+                        val renderH = (page.height * scale).toInt().coerceIn(1, 12000)
+
+                        val bmp = Bitmap.createBitmap(printWidthPx, renderH, Bitmap.Config.ARGB_8888)
+                        bmp.eraseColor(Color.WHITE)
+                        page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                        page.close()
+
+                        val croppedBmp = cropWhitespaceStatic(bmp)
+                        val esc = EscPos()
+                        esc.add(EscPos.INIT)
+                        esc.add(EscPos.ALIGN_CENTER)
+                        esc.addRaster(bitmapToRaster(croppedBmp))
+
+                        bmp.recycle()
+                        if (croppedBmp !== bmp) croppedBmp.recycle()
+
+                        if (mode == "wifi") {
+                            WifiPrinter.send(esc.build())
+                        } else {
+                            BluetoothPrinter.send(esc.build())
+                        }
+                    }
+                    renderer.close()
+                    seekablePfd.close()
+
+                    if (!cancelledRestartJobs.contains(jobId)) {
+                        sendCompanyFooterStatic(mode)
+                        if (mode == "wifi") {
+                            WifiPrinter.disconnect()
+                        }
+                        db.updateStatus(jobId, "completed")
+                    } else {
+                        db.updateStatus(jobId, "cancelled")
+                        cancelledRestartJobs.remove(jobId)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    db.updateStatus(jobId, "failed", e.message ?: "Reprint failed")
+                } finally {
+                    context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                }
+            }
+            return true
         }
     }
 
@@ -95,8 +225,6 @@ class FFitPrintService : PrintService() {
         android.util.Log.e("FFit", "onPrintJobQueued called!")
         val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
-        // ── MUST READ DOCUMENT ON MAIN THREAD ──
-        // Accessing printJob.document from a background thread throws IllegalAccessError!
         val pfd = printJob.document?.data
         if (pfd == null) {
             android.util.Log.e("FFit", "PDF data (pfd) is null on Main Thread!")
@@ -104,7 +232,6 @@ class FFitPrintService : PrintService() {
             return
         }
 
-        // Get localId on main thread to prevent "must be called from main thread" exception
         val localId = printJob.info?.printerId?.localId ?: ""
         val jobId = printJob.info?.id?.toString() ?: System.currentTimeMillis().toString()
         val title = printJob.info?.label ?: "Print Job"
@@ -125,6 +252,23 @@ class FFitPrintService : PrintService() {
                 if (isJobCancelledMain(printJob)) {
                     activeJobs.remove(printJob)
                     db.updateStatus(jobId, "cancelled")
+                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    return@submit
+                }
+
+                // ── COPY Spooler PFD content to cacheDir/job_${jobId}.pdf ──
+                val cacheFile = java.io.File(cacheDir, "job_${jobId}.pdf")
+                try {
+                    java.io.FileInputStream(pfd.fileDescriptor).use { input ->
+                        java.io.FileOutputStream(cacheFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    db.updateStatus(jobId, "failed", "Could not cache PDF data: ${e.message}")
+                    mainHandler.post { printJob.fail("Could not cache PDF data: ${e.message}") }
+                    activeJobs.remove(printJob)
                     sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
                     return@submit
                 }
@@ -196,16 +340,9 @@ class FFitPrintService : PrintService() {
                     return@submit
                 }
 
-                // Render PDF
-                val tempPdf = java.io.File(cacheDir, "temp_print_job_${jobId}.pdf")
-                java.io.FileInputStream(pfd.fileDescriptor).use { input ->
-                    java.io.FileOutputStream(tempPdf).use { output ->
-                        input.copyTo(output)
-                    }
-                }
-
+                // Render PDF from cacheFile
                 val seekablePfd = android.os.ParcelFileDescriptor.open(
-                    tempPdf, android.os.ParcelFileDescriptor.MODE_READ_ONLY
+                    cacheFile, android.os.ParcelFileDescriptor.MODE_READ_ONLY
                 )
 
                 val printWidthPx = 384
@@ -225,7 +362,7 @@ class FFitPrintService : PrintService() {
                     page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
                     page.close()
 
-                    val croppedBmp = cropWhitespace(bmp)
+                    val croppedBmp = cropWhitespaceStatic(bmp)
                     val esc = EscPos()
                     esc.add(EscPos.INIT)
                     esc.add(EscPos.ALIGN_CENTER)
@@ -242,10 +379,9 @@ class FFitPrintService : PrintService() {
                 }
                 renderer.close()
                 seekablePfd.close()
-                tempPdf.delete()
 
                 if (!isJobCancelledMain(printJob)) {
-                    sendCompanyFooter(mode)
+                    sendCompanyFooterStatic(mode)
                     if (mode == "wifi") {
                         WifiPrinter.disconnect()
                     }
@@ -267,130 +403,120 @@ class FFitPrintService : PrintService() {
         }
     }
 
-    /**
-     * Crops completely white rows from the top and bottom of the bitmap.
-     * Prevents wasting thermal paper when Chrome centers a small bill on a large page.
-     */
-    private fun cropWhitespace(bitmap: Bitmap): Bitmap {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-
-        var firstNonWhiteRow = -1
-        var lastNonWhiteRow = -1
-
-        for (y in 0 until height) {
-            var isWhiteRow = true
-            for (x in 0 until width) {
-                val color = pixels[y * width + x]
-                val alpha = (color shr 24) and 0xFF
-                val r = (color shr 16) and 0xFF
-                val g = (color shr 8) and 0xFF
-                val b = color and 0xFF
-                
-                // Content pixel is visible (alpha > 10) AND not white (r,g,b < 250)
-                if (alpha > 10 && (r < 250 || g < 250 || b < 250)) {
-                    isWhiteRow = false
-                    break
-                }
-            }
-            if (!isWhiteRow) {
-                firstNonWhiteRow = y
-                break
-            }
-        }
-
-        if (firstNonWhiteRow < 0) {
-            // Completely blank page, return a 1x1 dummy to avoid crash
-            return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-        }
-
-        for (y in height - 1 downTo firstNonWhiteRow) {
-            var isWhiteRow = true
-            for (x in 0 until width) {
-                val color = pixels[y * width + x]
-                val alpha = (color shr 24) and 0xFF
-                val r = (color shr 16) and 0xFF
-                val g = (color shr 8) and 0xFF
-                val b = color and 0xFF
-                
-                if (alpha > 10 && (r < 250 || g < 250 || b < 250)) {
-                    isWhiteRow = false
-                    break
-                }
-            }
-            if (!isWhiteRow) {
-                lastNonWhiteRow = y
-                break
-            }
-        }
-
-        // Leave a small margin (e.g., 10px) at top and bottom so text isn't cut too sharply
-        val cropTop = (firstNonWhiteRow - 10).coerceAtLeast(0)
-        val cropBottom = (lastNonWhiteRow + 20).coerceAtMost(height - 1)
-        val croppedHeight = cropBottom - cropTop + 1
-
-        return Bitmap.createBitmap(bitmap, 0, cropTop, width, croppedHeight)
-    }
-        /**
-     * Stylish Company Footer.
-     * Isko call karne par billing content ke niche horizontal line, bada company name 
-     * aur cut space print hoga.
-     */
-    private fun sendCompanyFooter(mode: String) {
-        val esc = EscPos()
-        
-        // 1. Text ko center align karein aur space chodein
-        esc.add(EscPos.ALIGN_CENTER)
-        esc.text("") // Ek khali line space ke liye
-        esc.separator() // Horizontal Dotted/Dashed line (----)
-        
-        // 2. Text ko Bada aur Bold karne ki commands
-     //   esc.add(byteArrayOf(0x1D, 0x21, 0x11)) // GS ! 17 (Double width + Double height)
-        esc.add(EscPos.BOLD_ON)                // BOLD_ON command
-        
-        // Yahan apni company ka name likhein
-        esc.text("Powered by- FFIT.IO") 
-        
-        // 3. Text size ko wapas normal karein aur Bold band karein
-      //  esc.add(byteArrayOf(0x1D, 0x21, 0x00)) // GS ! 0 (Normal size)
-        esc.add(EscPos.BOLD_OFF)
-        
-       
-        
-        // 4. Paper feed karein aur cut command bhein
-        esc.add(byteArrayOf(0x1B, 0x64, 0x06)) // Print ke baad extra 6 lines feed karega taaki footer cut na ho
-        esc.add(EscPos.CUT)    // Paper cutting command (agar printer support karta ho)
-        
-        if (mode == "wifi") {
-            WifiPrinter.send(esc.build())
-        } else {
-            BluetoothPrinter.send(esc.build())
-        }
-    }
-
     override fun onRequestCancelPrintJob(printJob: PrintJob) {
         printJob.cancel()
     }
 }
 
 /**
+ * Crops completely white rows from the top and bottom of the bitmap.
+ * Prevents wasting thermal paper when Chrome centers a small bill on a large page.
+ */
+fun cropWhitespaceStatic(bitmap: Bitmap): Bitmap {
+    val width = bitmap.width
+    val height = bitmap.height
+    val pixels = IntArray(width * height)
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+    var firstNonWhiteRow = -1
+    var lastNonWhiteRow = -1
+
+    for (y in 0 until height) {
+        var isWhiteRow = true
+        for (x in 0 until width) {
+            val color = pixels[y * width + x]
+            val alpha = (color shr 24) and 0xFF
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            
+            // Content pixel is visible (alpha > 10) AND not white (r,g,b < 250)
+            if (alpha > 10 && (r < 250 || g < 250 || b < 250)) {
+                isWhiteRow = false
+                break
+            }
+        }
+        if (!isWhiteRow) {
+            firstNonWhiteRow = y
+            break
+        }
+    }
+
+    if (firstNonWhiteRow < 0) {
+        // Completely blank page, return a 1x1 dummy to avoid crash
+        return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+    }
+
+    for (y in height - 1 downTo firstNonWhiteRow) {
+        var isWhiteRow = true
+        for (x in 0 until width) {
+            val color = pixels[y * width + x]
+            val alpha = (color shr 24) and 0xFF
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            
+            if (alpha > 10 && (r < 250 || g < 250 || b < 250)) {
+                isWhiteRow = false
+                break
+            }
+        }
+        if (!isWhiteRow) {
+            lastNonWhiteRow = y
+            break
+        }
+    }
+
+    // Leave a small margin (e.g., 10px) at top and bottom so text isn't cut too sharply
+    val cropTop = (firstNonWhiteRow - 10).coerceAtLeast(0)
+    val cropBottom = (lastNonWhiteRow + 20).coerceAtMost(height - 1)
+    val croppedHeight = cropBottom - cropTop + 1
+
+    return Bitmap.createBitmap(bitmap, 0, cropTop, width, croppedHeight)
+}
+
+/**
+ * Stylish Company Footer.
+ */
+fun sendCompanyFooterStatic(mode: String) {
+    val esc = EscPos()
+    
+    // 1. Text ko center align karein aur space chodein
+    esc.add(EscPos.ALIGN_CENTER)
+    esc.text("") // Ek khali line space ke liye
+    esc.separator() // Horizontal Dotted/Dashed line (----)
+    
+    // 2. Text ko Bada aur Bold karne ki commands
+    esc.add(EscPos.BOLD_ON)                // BOLD_ON command
+    
+    // Yahan apni company ka name likhein
+    esc.text("Powered by- FFIT.IO") 
+    
+    // 3. Text size ko wapas normal karein aur Bold band karein
+    esc.add(EscPos.BOLD_OFF)
+    
+    // 4. Paper feed karein aur cut command bhein
+    esc.add(byteArrayOf(0x1B, 0x64, 0x06)) // Print ke baad extra 6 lines feed karega taaki footer cut na ho
+    esc.add(EscPos.CUT)    // Paper cutting command (agar printer support karta ho)
+    
+    if (mode == "wifi") {
+        WifiPrinter.send(esc.build())
+    } else {
+        BluetoothPrinter.send(esc.build())
+    }
+}
+
+/**
  * FFitDiscoverySession — Exposes only the saved printer to Android's PrintManager.
- *
- * CRITICAL: PrinterCapabilitiesInfo MUST be set or print button stays DISABLED.
- * We only show the printer saved in SharedPreferences (not all BT devices).
  */
 class FFitDiscoverySession(private val service: PrintService) : PrinterDiscoverySession() {
 
     private fun buildPrinterInfo(id: PrinterId, name: String, connected: Boolean): PrinterInfo {
-        // 58mm thermal paper: 58mm = ~2283 mils. Height = 297mm (same as A4) = ~11692 mils.
         val size58mm = PrintAttributes.MediaSize("receipt_58", "58mm Receipt", 2283, 11692)
-        // 80mm thermal paper: 80mm = ~3150 mils. Height = 297mm (same as A4) = ~11692 mils.
         val size80mm = PrintAttributes.MediaSize("receipt_80", "80mm Receipt", 3150, 11692)
 
         val capabilities = PrinterCapabilitiesInfo.Builder(id)
-            .addMediaSize(size58mm, true) // DEFAULT IS NOW 58MM WITH STANDARD HEIGHT
+            .addMediaSize(size58mm, true)
             .addMediaSize(size80mm, false)
             .addResolution(
                 PrintAttributes.Resolution("res_203", "203 DPI", 203, 203), true
@@ -417,7 +543,6 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
         
         val printers = mutableListOf<PrinterInfo>()
 
-        // 1. Add Bluetooth printer if configured
         val mac = PrinterPrefs.getSavedMac(prefs)
         val name = PrinterPrefs.getSavedName(prefs)
         if (mac.isNotEmpty()) {
@@ -425,7 +550,6 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
             printers.add(buildPrinterInfo(id, name.ifEmpty { "FFit BT Printer" }, true))
         }
 
-        // 2. Add WiFi printer if configured
         val wifiIp = PrinterPrefs.getSavedIp(prefs)
         val wifiSsid = PrinterPrefs.getSavedSsid(prefs)
         if (wifiIp.isNotEmpty()) {
@@ -440,7 +564,6 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
     }
 
     override fun onStopPrinterDiscovery() {}
-
     override fun onValidatePrinters(printerIds: MutableList<PrinterId>) {}
 
     override fun onStartPrinterStateTracking(printerId: PrinterId) {
@@ -454,7 +577,6 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
             val displayName = if (wifiSsid.isNotEmpty()) wifiSsid else "WiFi Printer ($wifiIp)"
             addPrinters(listOf(buildPrinterInfo(printerId, displayName, true)))
         } else {
-            // Assume Bluetooth MAC
             val name = PrinterPrefs.getSavedName(prefs)
             addPrinters(listOf(buildPrinterInfo(printerId, name.ifEmpty { "FFit BT Printer" }, true)))
         }

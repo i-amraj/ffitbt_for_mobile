@@ -96,6 +96,26 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:visibility="gone"/>
+
+        <!-- Retry Button (Visible for completed, failed, cancelled jobs) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRetryLogJob"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="12dp"
+            android:text="REPRINT"
+            android:textColor="#22C55E"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            app:backgroundTint="#1A22C55E"
+            app:cornerRadius="6dp"
+            app:strokeColor="#22C55E"
+            app:strokeWidth="0.5dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone"/>
     </LinearLayout>
 
     <!-- Error message text, hidden by default -->

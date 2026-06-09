@@ -608,9 +608,11 @@ class MainActivity : AppCompatActivity() {
             binding.rvPrintLogs.visibility = View.VISIBLE
             
             if (logAdapter == null) {
-                logAdapter = PrintLogAdapter(logs) { log ->
-                    cancelPrintJob(log)
-                }
+                logAdapter = PrintLogAdapter(
+                    logs,
+                    onCancelClick = { log -> cancelPrintJob(log) },
+                    onRetryClick = { log -> restartPrintJob(log) }
+                )
                 binding.rvPrintLogs.layoutManager = LinearLayoutManager(this)
                 binding.rvPrintLogs.adapter = logAdapter
             } else {
@@ -626,6 +628,17 @@ class MainActivity : AppCompatActivity() {
             snack("✅ Print job successfully cancelled.")
         } else {
             snack("ℹ️ Cancel request sent for print job.")
+        }
+        loadPrintLogs()
+    }
+
+    private fun restartPrintJob(log: PrintLog) {
+        snack("⏳ Attempting to reprint job...")
+        val success = FFitPrintService.restartPrintJob(this, log.systemJobId)
+        if (success) {
+            snack("✅ Reprint command queued successfully.")
+        } else {
+            snack("❌ Reprint failed. Document cache might not be available.")
         }
         loadPrintLogs()
     }
