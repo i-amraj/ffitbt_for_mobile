@@ -26,7 +26,7 @@
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:paddingTop="48dp"
-                android:paddingBottom="32dp">
+                android:paddingBottom="24dp">
 
                 <!-- Logo + App name row -->
                 <LinearLayout
@@ -62,7 +62,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Bluetooth Print Driver"
+                            android:text="Thermal Print Driver"
                             android:textColor="#80FFFFFF"
                             android:textSize="13sp"/>
                     </LinearLayout>
@@ -82,133 +82,340 @@
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp"/>
                 </LinearLayout>
+            </LinearLayout>
 
-                <!-- Subtitle tagline -->
+            <!-- ══════════════ SERVICE DISABLED WARNING BANNER ══════════════ -->
+            <LinearLayout
+                android:id="@+id/layoutServiceWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#1AEF4444"
+                android:padding="16dp"
+                android:layout_margin="16dp"
+                android:visibility="visible">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:text="Connect to your paired Bluetooth thermal printer and enable system-wide printing from any app."
-                    android:textColor="#99FFFFFF"
+                    android:text="⚠️ Print Service is Disabled"
+                    android:textColor="@color/red"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="To print receipts from other apps like Chrome or Gmail, you must enable FFit BT in your system settings."
+                    android:textColor="#E2E8F0"
                     android:textSize="13sp"
-                    android:lineSpacingExtra="3dp"/>
+                    android:layout_marginBottom="12dp"
+                    android:lineSpacingExtra="2dp"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnEnableServiceBanner"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="ENABLE NOW"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/red"
+                    app:cornerRadius="6dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"/>
             </LinearLayout>
 
-            <!-- ══════════════ BODY CARDS ══════════════ -->
+            <!-- ══════════════ SHARED ACTIVE PRINTER STATUS ══════════════ -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_bg"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ACTIVE PRINTER STATUS"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.12"
+                        android:layout_marginBottom="14dp"/>
+
+                    <!-- Status row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+
+                        <View
+                            android:id="@+id/statusDot"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/dot_red"/>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp">
+
+                            <TextView
+                                android:id="@+id/tvStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="No Printer Configured"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"/>
+
+                            <TextView
+                                android:id="@+id/tvMac"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=""
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp"
+                                android:fontFamily="monospace"
+                                android:visibility="gone"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginBottom="14dp"/>
+
+                    <!-- Disconnect Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDisconnect"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="DISCONNECT / RESET"
+                        android:textColor="@color/red"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        app:backgroundTint="#1AEF4444"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/red"
+                        app:strokeWidth="1dp"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ══════════════ TAB NAVIGATION ══════════════ -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="12dp"
+                app:tabGravity="fill"
+                app:tabMode="fixed"
+                app:tabTextColor="@color/text_secondary"
+                app:tabSelectedTextColor="@color/cyan"
+                app:tabIndicatorColor="@color/cyan"
+                app:tabBackground="@color/card_bg"
+                app:tabIndicatorHeight="3dp"/>
+
+            <!-- ══════════════ BODY PANELS ══════════════ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="16dp">
 
-                <!-- ── Printer Connection Card ── -->
-                <androidx.cardview.widget.CardView
+                <!-- ── BLUETOOTH PANEL ── -->
+                <LinearLayout
+                    android:id="@+id/layoutBluetooth"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="14dp"
-                    app:cardBackgroundColor="@color/card_bg"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="0dp">
+                    android:orientation="vertical"
+                    android:visibility="visible">
 
-                    <LinearLayout
+                    <androidx.cardview.widget.CardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="20dp">
+                        android:layout_marginBottom="14dp"
+                        app:cardBackgroundColor="@color/card_bg"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp">
 
-                        <!-- Section label -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="PRINTER STATUS"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.12"
-                            android:layout_marginBottom="14dp"/>
-
-                        <!-- Status row -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="6dp">
+                            android:orientation="vertical"
+                            android:padding="20dp">
 
-                            <!-- Animated dot -->
-                            <View
-                                android:id="@+id/statusDot"
-                                android:layout_width="12dp"
-                                android:layout_height="12dp"
-                                android:background="@drawable/dot_red"/>
-
-                            <LinearLayout
-                                android:layout_width="0dp"
+                            <TextView
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical"
-                                android:layout_marginStart="12dp">
+                                android:text="BLUETOOTH PAIRING"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.12"
+                                android:layout_marginBottom="14dp"/>
 
-                                <TextView
-                                    android:id="@+id/tvStatus"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="No Printer Connected"
-                                    android:textColor="@color/text_primary"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold"/>
-
-                                <TextView
-                                    android:id="@+id/tvMac"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text=""
-                                    android:textColor="@color/text_secondary"
-                                    android:textSize="12sp"
-                                    android:fontFamily="monospace"
-                                    android:visibility="gone"/>
-                            </LinearLayout>
+                            <!-- Scan Button -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnScan"
+                                android:layout_width="match_parent"
+                                android:layout_height="52dp"
+                                android:text="🔍   SCAN PAIRED PRINTERS"
+                                android:textColor="@color/dark_bg"
+                                android:textStyle="bold"
+                                android:textSize="14sp"
+                                app:backgroundTint="@color/cyan"
+                                app:cornerRadius="12dp"/>
                         </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+                </LinearLayout>
 
-                        <!-- Divider -->
-                        <View
+                <!-- ── WIFI PANEL ── -->
+                <LinearLayout
+                    android:id="@+id/layoutWifi"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        app:cardBackgroundColor="@color/card_bg"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="0dp">
+
+                        <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="@color/divider"
-                            android:layout_marginTop="14dp"
-                            android:layout_marginBottom="14dp"/>
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="20dp">
 
-                        <!-- Scan Button -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnScan"
-                            android:layout_width="match_parent"
-                            android:layout_height="52dp"
-                            android:text="🔍   SCAN PAIRED PRINTERS"
-                            android:textColor="@color/dark_bg"
-                            android:textStyle="bold"
-                            android:textSize="14sp"
-                            app:backgroundTint="@color/cyan"
-                            app:cornerRadius="12dp"
-                            app:icon="@null"/>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="WIFI PRINTER SETTINGS"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.12"
+                                android:layout_marginBottom="16dp"/>
 
-                        <!-- Disconnect Button -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDisconnect"
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:layout_marginTop="10dp"
-                            android:text="DISCONNECT"
-                            android:textColor="@color/red"
-                            android:textStyle="bold"
-                            android:visibility="gone"
-                            app:backgroundTint="#1AEF4444"
-                            app:cornerRadius="12dp"
-                            app:strokeColor="@color/red"
-                            app:strokeWidth="1dp"/>
-                    </LinearLayout>
-                </androidx.cardview.widget.CardView>
+                            <!-- Wifi Name (SSID) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:textColorHint="@color/text_secondary"
+                                app:hintTextColor="@color/cyan"
+                                app:boxStrokeColor="@color/cyan"
+                                app:boxBackgroundColor="@color/card_bg"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etWifiSsid"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="WiFi Name (SSID) - Optional"
+                                    android:textColor="@color/text_primary"
+                                    android:inputType="text"/>
+                            </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- ── Test Print Card ── -->
+                            <!-- IP Address -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:textColorHint="@color/text_secondary"
+                                app:hintTextColor="@color/cyan"
+                                app:boxStrokeColor="@color/cyan"
+                                app:boxBackgroundColor="@color/card_bg"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etWifiIp"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="Printer IP Address"
+                                    android:textColor="@color/text_primary"
+                                    android:inputType="text"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Subnet Mask -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="12dp"
+                                android:textColorHint="@color/text_secondary"
+                                app:hintTextColor="@color/cyan"
+                                app:boxStrokeColor="@color/cyan"
+                                app:boxBackgroundColor="@color/card_bg"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etWifiSubnet"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="Subnet Mask"
+                                    android:textColor="@color/text_primary"
+                                    android:inputType="text"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Port -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="18dp"
+                                android:textColorHint="@color/text_secondary"
+                                app:hintTextColor="@color/cyan"
+                                app:boxStrokeColor="@color/cyan"
+                                app:boxBackgroundColor="@color/card_bg"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/etWifiPort"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:hint="Port (Default: 9100)"
+                                    android:textColor="@color/text_primary"
+                                    android:inputType="number"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Save WiFi settings button -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSaveWifi"
+                                android:layout_width="match_parent"
+                                android:layout_height="52dp"
+                                android:text="💾   SAVE &amp; TEST WIFI"
+                                android:textColor="@color/dark_bg"
+                                android:textStyle="bold"
+                                android:textSize="14sp"
+                                app:backgroundTint="@color/cyan"
+                                app:cornerRadius="12dp"/>
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+                </LinearLayout>
+
+                <!-- ── TEST PRINT CARD ── -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/cardTestPrint"
                     android:layout_width="match_parent"
@@ -248,7 +455,57 @@
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- ── How To Use Card ── -->
+                <!-- ── OEM BACKGROUND AUTOSTART TROUBLESHOOTING CARD ── -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/layoutOEMTroubleshooting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="@color/card_bg"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="VIVO / OPPO / XIAOMI SYSTEM FIX"
+                            android:textColor="@color/amber"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.12"
+                            android:layout_marginBottom="10dp"/>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Chinese ROMs block background apps. To prevent print jobs from failing, you must manually grant Autostart and Battery Exemption permissions."
+                            android:textColor="#E2E8F0"
+                            android:textSize="13sp"
+                            android:layout_marginBottom="14dp"
+                            android:lineSpacingExtra="2dp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnOpenOEMSettings"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:text="⚙️   OPEN AUTOSTART SETTINGS"
+                            android:textColor="@color/amber"
+                            android:textStyle="bold"
+                            app:backgroundTint="#1AF59E0B"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="@color/amber"
+                            app:strokeWidth="1dp"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- ── HOW TO USE CARD ── -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -298,7 +555,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="44dp"
                             android:layout_marginTop="16dp"
-                            android:text="⚙️   OPEN ANDROID PRINT SETTINGS"
+                            android:text="⚙️   OPEN SYSTEM PRINTING"
                             android:textColor="@color/cyan"
                             android:textStyle="bold"
                             app:backgroundTint="#1A38BDF8"

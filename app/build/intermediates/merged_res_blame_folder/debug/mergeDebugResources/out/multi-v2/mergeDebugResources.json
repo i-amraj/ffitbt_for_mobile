@@ -5530,23 +5530,6 @@
                     }
                 },
                 {
-                    "source": "/home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/src/main/res/values/colors.xml",
-                    "from": {
-                        "startLines": "7,3,4,2,10,5,6,8,9",
-                        "startColumns": "4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "256,97,139,55,392,178,218,296,343",
-                        "endColumns": "39,41,38,41,41,39,37,46,48",
-                        "endOffsets": "291,134,173,92,429,213,251,338,387"
-                    },
-                    "to": {
-                        "startLines": "634,651,656,657,697,702,952,963,964",
-                        "startColumns": "4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "32319,33610,33901,33940,36685,36993,55859,56594,56641",
-                        "endColumns": "39,41,38,41,41,39,37,46,48",
-                        "endOffsets": "32354,33647,33935,33977,36722,37028,55892,56636,56685"
-                    }
-                },
-                {
                     "source": "/home/ubuntu_16gb/.gradle/caches/transforms-4/42e71e56b5b5d8eb9807935879fdd525/transformed/lifecycle-viewmodel-2.7.0/res/values/values.xml",
                     "from": {
                         "startLines": "2",
@@ -5561,6 +5544,42 @@
                         "startOffsets": "123897",
                         "endColumns": "49",
                         "endOffsets": "123942"
+                    }
+                },
+                {
+                    "source": "/home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/src/main/res/values/themes.xml",
+                    "from": {
+                        "startLines": "21,16,10,1",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "1047,800,486,16",
+                        "endLines": "26,19,14,8",
+                        "endColumns": "12,12,12,12",
+                        "endOffsets": "1340,1041,794,480"
+                    },
+                    "to": {
+                        "startLines": "2127,5528,5532,6400",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "151380,388613,388859,447476",
+                        "endLines": "2132,5531,5536,6407",
+                        "endColumns": "12,12,12,12",
+                        "endOffsets": "151673,388854,389167,447940"
+                    }
+                },
+                {
+                    "source": "/home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/src/main/res/values/colors.xml",
+                    "from": {
+                        "startLines": "7,3,4,2,10,5,6,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "256,97,139,55,392,178,218,296,343",
+                        "endColumns": "39,41,38,41,41,39,37,46,48",
+                        "endOffsets": "291,134,173,92,429,213,251,338,387"
+                    },
+                    "to": {
+                        "startLines": "634,651,656,657,697,702,952,963,964",
+                        "startColumns": "4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "32319,33610,33901,33940,36685,36993,55859,56594,56641",
+                        "endColumns": "39,41,38,41,41,39,37,46,48",
+                        "endOffsets": "32354,33647,33935,33977,36722,37028,55892,56636,56685"
                     }
                 },
                 {
@@ -5616,25 +5635,6 @@
                         "startOffsets": "121713,123783",
                         "endColumns": "41,59",
                         "endOffsets": "121750,123838"
-                    }
-                },
-                {
-                    "source": "/home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/src/main/res/values/themes.xml",
-                    "from": {
-                        "startLines": "21,16,10,1",
-                        "startColumns": "4,4,4,4",
-                        "startOffsets": "1047,800,486,16",
-                        "endLines": "26,19,14,8",
-                        "endColumns": "12,12,12,12",
-                        "endOffsets": "1340,1041,794,480"
-                    },
-                    "to": {
-                        "startLines": "2127,5528,5532,6400",
-                        "startColumns": "4,4,4,4",
-                        "startOffsets": "151380,388613,388859,447476",
-                        "endLines": "2132,5531,5536,6407",
-                        "endColumns": "12,12,12,12",
-                        "endOffsets": "151673,388854,389167,447940"
                     }
                 },
                 {

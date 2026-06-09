@@ -3,9 +3,11 @@ package com.fireflisinfotech.ffitbt
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -35,12 +37,30 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupSteps()
+        setupTabs()
+        setupWifiForm()
+        setupOEMTroubleshooting()
 
         binding.btnScan.setOnClickListener { checkPermissionsAndScan() }
         binding.btnDisconnect.setOnClickListener { disconnect() }
         binding.btnTestPrint.setOnClickListener { doTestPrint() }
+        
         binding.btnOpenPrintSettings.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_PRINT_SETTINGS))
+            try {
+                startActivity(Intent(Settings.ACTION_PRINT_SETTINGS))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                snack("⚠️ System printing settings not found on this device.")
+            }
+        }
+        
+        binding.btnEnableServiceBanner.setOnClickListener {
+            try {
+                startActivity(Intent(Settings.ACTION_PRINT_SETTINGS))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                snack("⚠️ System printing settings not found on this device.")
+            }
         }
 
         updateUI()
@@ -49,6 +69,156 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUI()
+    }
+
+    // ─── Print Service Check ──────────────────────
+    private fun isPrintServiceEnabled(): Boolean {
+        // 1. Android 13+ (API 33+) official public check
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val printManager = getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
+            if (printManager != null) {
+                try {
+                    val comp = ComponentName(this, FFitPrintService::class.java)
+                    return printManager.isPrintServiceEnabled(comp)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        // 2. Legacy / fallback secure settings check
+        try {
+            val enabledServicesSetting = Settings.Secure.getString(
+                contentResolver,
+                "enabled_print_services"
+            )
+            if (enabledServicesSetting != null) {
+                val myService = ComponentName(this, FFitPrintService::class.java)
+                return enabledServicesSetting.contains(myService.flattenToString()) ||
+                       enabledServicesSetting.contains(myService.flattenToShortString()) ||
+                       enabledServicesSetting.contains(packageName)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return false
+    }
+
+    // ─── Setup TabLayout ──────────────────────────
+    private fun setupTabs() {
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("Bluetooth Printer"))
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("WiFi Network Printer"))
+
+        val savedMode = PrinterPrefs.getSavedMode(prefs)
+        if (savedMode == "wifi") {
+            binding.tabLayout.selectTab(binding.tabLayout.getTabAt(1))
+            binding.layoutBluetooth.visibility = View.GONE
+            binding.layoutWifi.visibility = View.VISIBLE
+        } else {
+            binding.tabLayout.selectTab(binding.tabLayout.getTabAt(0))
+            binding.layoutBluetooth.visibility = View.VISIBLE
+            binding.layoutWifi.visibility = View.GONE
+        }
+
+        binding.tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab) {
+                if (tab.position == 1) {
+                    PrinterPrefs.setConnectionMode(prefs, "wifi")
+                    binding.layoutBluetooth.visibility = View.GONE
+                    binding.layoutWifi.visibility = View.VISIBLE
+                } else {
+                    PrinterPrefs.setConnectionMode(prefs, "bluetooth")
+                    binding.layoutBluetooth.visibility = View.VISIBLE
+                    binding.layoutWifi.visibility = View.GONE
+                }
+                updateUI()
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab) {}
+        })
+    }
+
+    // ─── WiFi Form Setup ─────────────────────────
+    private fun setupWifiForm() {
+        // Pre-populate fields
+        binding.etWifiSsid.setText(PrinterPrefs.getSavedSsid(prefs))
+        binding.etWifiIp.setText(PrinterPrefs.getSavedIp(prefs))
+        binding.etWifiSubnet.setText(PrinterPrefs.getSavedSubnet(prefs))
+        binding.etWifiPort.setText(PrinterPrefs.getSavedPort(prefs).toString())
+
+        binding.btnSaveWifi.setOnClickListener {
+            val ssid = binding.etWifiSsid.text.toString().trim()
+            val ip = binding.etWifiIp.text.toString().trim()
+            val subnet = binding.etWifiSubnet.text.toString().trim()
+            val portStr = binding.etWifiPort.text.toString().trim()
+
+            if (ip.isEmpty()) {
+                snack("❌ IP Address cannot be empty")
+                return@setOnClickListener
+            }
+            val port = portStr.toIntOrNull() ?: 9100
+
+            PrinterPrefs.saveWifiSettings(prefs, ip, port, ssid, subnet)
+            snack("⏳ Testing WiFi connection to $ip:$port...")
+            binding.btnSaveWifi.isEnabled = false
+
+            // Verify connection asynchronously
+            Thread {
+                val connected = WifiPrinter.connect(ip, port)
+                runOnUiThread {
+                    binding.btnSaveWifi.isEnabled = true
+                    if (connected) {
+                        snack("✅ WiFi Printer Configured & Reachable!")
+                        updateUI()
+                    } else {
+                        snack("⚠️ Saved WiFi details, but connection failed. Make sure printer is ON.")
+                        updateUI()
+                    }
+                }
+            }.start()
+        }
+    }
+
+    // ─── OEM Autostart setup ──────────────────────
+    private fun setupOEMTroubleshooting() {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        if (manufacturer.contains("vivo") || manufacturer.contains("oppo") || manufacturer.contains("xiaomi")) {
+            binding.layoutOEMTroubleshooting.visibility = View.VISIBLE
+            binding.btnOpenOEMSettings.setOnClickListener { openOEMSettings() }
+        } else {
+            binding.layoutOEMTroubleshooting.visibility = View.GONE
+        }
+    }
+
+    private fun openOEMSettings() {
+        val manufacturer = Build.MANUFACTURER.lowercase()
+        val intent = Intent()
+        when {
+            manufacturer.contains("xiaomi") -> {
+                intent.component = ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+            }
+            manufacturer.contains("oppo") -> {
+                intent.component = ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity")
+            }
+            manufacturer.contains("vivo") -> {
+                intent.component = ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")
+            }
+        }
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to Application Details Screen
+            try {
+                val fallback = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(fallback)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                snack("⚠️ Settings page not found.")
+            }
+        }
     }
 
     // ─── Permission Check ─────────────────────────
@@ -99,7 +269,11 @@ class MainActivity : AppCompatActivity() {
             adapter == null -> snack("❌ Bluetooth not supported on this device.")
             !adapter.isEnabled -> {
                 snack("⚠️ Bluetooth is OFF. Please turn it ON and try again.")
-                startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                try {
+                    startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
             else -> showPrinterSheet()
         }
@@ -196,16 +370,49 @@ class MainActivity : AppCompatActivity() {
 
     // ─── Disconnect ───────────────────────────────
     private fun disconnect() {
-        BluetoothPrinter.disconnect()
+        val mode = PrinterPrefs.getSavedMode(prefs)
+        if (mode == "wifi") {
+            WifiPrinter.disconnect()
+            toast("WiFi Connection Reset")
+        } else {
+            BluetoothPrinter.disconnect()
+            toast("Disconnected")
+        }
         updateUI()
-        toast("Disconnected")
     }
 
     // ─── Test Print ───────────────────────────────
     private fun doTestPrint() {
-        if (!BluetoothPrinter.isConnected) { snack("❌ No printer connected"); return }
+        val mode = PrinterPrefs.getSavedMode(prefs)
         binding.btnTestPrint.isEnabled = false
+
         Thread {
+            var connectionOk = false
+            if (mode == "wifi") {
+                val ip = PrinterPrefs.getSavedIp(prefs)
+                val port = PrinterPrefs.getSavedPort(prefs)
+                if (!WifiPrinter.isConnected) {
+                    WifiPrinter.connect(ip, port)
+                }
+                connectionOk = WifiPrinter.isConnected
+            } else {
+                if (!BluetoothPrinter.isConnected) {
+                    val mac = PrinterPrefs.getSavedMac(prefs)
+                    if (mac.isNotEmpty()) {
+                        BluetoothPrinter.connect(mac)
+                    }
+                }
+                connectionOk = BluetoothPrinter.isConnected
+            }
+
+            if (!connectionOk) {
+                runOnUiThread {
+                    binding.btnTestPrint.isEnabled = true
+                    snack("❌ Printer not reachable. Verify your connection/settings.")
+                }
+                return@Thread
+            }
+
             val esc = EscPos()
             esc.add(EscPos.INIT)
             esc.add(EscPos.ALIGN_CENTER)
@@ -218,6 +425,20 @@ class MainActivity : AppCompatActivity() {
             esc.text("Test Page")
             esc.text("")
             esc.add(EscPos.ALIGN_LEFT)
+
+            if (mode == "wifi") {
+                val ip = PrinterPrefs.getSavedIp(prefs)
+                val port = PrinterPrefs.getSavedPort(prefs)
+                esc.text("Mode     : WiFi Printer")
+                esc.text("IP       : $ip:$port")
+            } else {
+                val name = PrinterPrefs.getSavedName(prefs)
+                val mac = PrinterPrefs.getSavedMac(prefs)
+                esc.text("Mode     : Bluetooth")
+                esc.text("Name     : $name")
+                esc.text("MAC      : $mac")
+            }
+
             esc.text("Status   : OK - Connected")
             esc.text("Driver   : ESC/POS")
             esc.text("Paper    : 58mm Thermal")
@@ -231,45 +452,94 @@ class MainActivity : AppCompatActivity() {
             esc.addRawText("made by raj ")
             esc.addByte(0x03)   // ♥ in CP437
             esc.addByte(0x0A)   // newline
-            esc.add(EscPos.FEED_3)
+            esc.add(byteArrayOf(0x1B, 0x64, 0x06)) // Feed 6 lines to avoid cut off
             esc.add(EscPos.CUT)
 
-            val ok = BluetoothPrinter.send(esc.build())
+            val printOk = if (mode == "wifi") {
+                val ok = WifiPrinter.send(esc.build())
+                WifiPrinter.disconnect() // Disconnect after network print
+                ok
+            } else {
+                BluetoothPrinter.send(esc.build())
+            }
+
             runOnUiThread {
                 binding.btnTestPrint.isEnabled = true
-                if (ok) snack("✅ Test page printed!")
+                if (printOk) snack("✅ Test page printed!")
                 else snack("❌ Print failed — is printer ON?")
+                updateUI()
             }
         }.start()
     }
 
     // ─── UI Update ────────────────────────────────
     private fun updateUI() {
-        val connected = BluetoothPrinter.isConnected
-        val name = PrinterPrefs.getSavedName(prefs)
-        val mac  = PrinterPrefs.getSavedMac(prefs)
-
-        if (connected) {
-            binding.statusDot.setBackgroundResource(R.drawable.dot_green)
-            binding.tvStatus.text = name.ifEmpty { "Printer Connected" }
-            binding.tvMac.text = mac
-            binding.tvMac.visibility = View.VISIBLE
-            binding.btnDisconnect.visibility = View.VISIBLE
-            binding.cardTestPrint.visibility = View.VISIBLE
+        // Update print service warning banner & badge
+        val serviceEnabled = isPrintServiceEnabled()
+        if (serviceEnabled) {
+            binding.layoutServiceWarning.visibility = View.GONE
+            binding.tvServiceBadge.text = "● Service ON"
+            binding.tvServiceBadge.setTextColor(getColor(R.color.green))
         } else {
-            binding.statusDot.setBackgroundResource(R.drawable.dot_red)
-            binding.tvStatus.text = "No Printer Connected"
-            binding.tvMac.visibility = View.GONE
-            binding.btnDisconnect.visibility = View.GONE
-            binding.cardTestPrint.visibility = View.GONE
+            binding.layoutServiceWarning.visibility = View.VISIBLE
+            binding.tvServiceBadge.text = "● Service OFF"
+            binding.tvServiceBadge.setTextColor(getColor(R.color.amber))
+        }
+
+        val mode = PrinterPrefs.getSavedMode(prefs)
+        if (mode == "wifi") {
+            val ip = PrinterPrefs.getSavedIp(prefs)
+            val port = PrinterPrefs.getSavedPort(prefs)
+            val isConnected = WifiPrinter.isConnected
+
+            if (isConnected) {
+                binding.statusDot.setBackgroundResource(R.drawable.dot_green)
+                binding.tvStatus.text = "WiFi Printer Active"
+                binding.tvMac.text = "IP: $ip:$port"
+                binding.tvMac.visibility = View.VISIBLE
+                binding.btnDisconnect.visibility = View.VISIBLE
+                binding.cardTestPrint.visibility = View.VISIBLE
+            } else {
+                binding.statusDot.setBackgroundResource(R.drawable.dot_red)
+                binding.tvStatus.text = "WiFi Configured"
+                binding.tvMac.text = "IP: $ip:$port (Not Connected)"
+                binding.tvMac.visibility = View.VISIBLE
+                binding.btnDisconnect.visibility = View.GONE
+                binding.cardTestPrint.visibility = View.VISIBLE
+            }
+        } else {
+            val connected = BluetoothPrinter.isConnected
+            val name = PrinterPrefs.getSavedName(prefs)
+            val mac  = PrinterPrefs.getSavedMac(prefs)
+
+            if (connected) {
+                binding.statusDot.setBackgroundResource(R.drawable.dot_green)
+                binding.tvStatus.text = name.ifEmpty { "Printer Connected" }
+                binding.tvMac.text = mac
+                binding.tvMac.visibility = View.VISIBLE
+                binding.btnDisconnect.visibility = View.VISIBLE
+                binding.cardTestPrint.visibility = View.VISIBLE
+            } else {
+                binding.statusDot.setBackgroundResource(R.drawable.dot_red)
+                binding.tvStatus.text = "No Printer Connected"
+                binding.tvMac.visibility = View.GONE
+                binding.btnDisconnect.visibility = View.GONE
+                if (mac.isNotEmpty()) {
+                    binding.tvMac.text = "$mac (Saved)"
+                    binding.tvMac.visibility = View.VISIBLE
+                    binding.cardTestPrint.visibility = View.VISIBLE
+                } else {
+                    binding.cardTestPrint.visibility = View.GONE
+                }
+            }
         }
     }
 
     // ─── Steps content ────────────────────────────
     private fun setupSteps() {
         val steps = listOf(
-            Pair("1", "Pair your printer via Android Settings → Bluetooth"),
-            Pair("2", "Open FFit BT → Scan → Connect your printer"),
+            Pair("1", "Select Bluetooth or WiFi Printer mode at the top"),
+            Pair("2", "Connect paired BT printer OR configure WiFi printer IP"),
             Pair("3", "Go to Settings → Print → FFit BT → Toggle ON"),
             Pair("4", "In any app (Chrome, etc.) → Print → Select FFit BT")
         )

@@ -28,10 +28,10 @@ com.fireflisinfotech.ffitbt.app-drawerlayout-1.1.1-26 /home/ubuntu_16gb/.gradle/
 com.fireflisinfotech.ffitbt.app-jetified-startup-runtime-1.1.1-27 /home/ubuntu_16gb/.gradle/caches/transforms-4/f6d9331c42cc1b960b4a2338246e08e4/transformed/jetified-startup-runtime-1.1.1/res
 com.fireflisinfotech.ffitbt.app-jetified-lifecycle-viewmodel-savedstate-2.7.0-28 /home/ubuntu_16gb/.gradle/caches/transforms-4/f9eb0ea02884a25dace0a8c59d0a6f1f/transformed/jetified-lifecycle-viewmodel-savedstate-2.7.0/res
 com.fireflisinfotech.ffitbt.app-jetified-appcompat-resources-1.6.1-29 /home/ubuntu_16gb/.gradle/caches/transforms-4/fdfbed0ab59b3abf2df68e6951c6d816/transformed/jetified-appcompat-resources-1.6.1/res
-com.fireflisinfotech.ffitbt.app-pngs-30 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/build/generated/res/pngs/debug
-com.fireflisinfotech.ffitbt.app-resValues-31 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/build/generated/res/resValues/debug
-com.fireflisinfotech.ffitbt.app-packageDebugResources-32 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.fireflisinfotech.ffitbt.app-packageDebugResources-33 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.fireflisinfotech.ffitbt.app-debug-34 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/build/intermediates/merged_res/debug/mergeDebugResources
-com.fireflisinfotech.ffitbt.app-debug-35 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/src/debug/res
-com.fireflisinfotech.ffitbt.app-main-36 /home/ubuntu_16gb/raj_work_space/printer_driver/ffitbt/app/src/main/res
+com.fireflisinfotech.ffitbt.app-pngs-30 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/build/generated/res/pngs/debug
+com.fireflisinfotech.ffitbt.app-resValues-31 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/build/generated/res/resValues/debug
+com.fireflisinfotech.ffitbt.app-packageDebugResources-32 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+com.fireflisinfotech.ffitbt.app-packageDebugResources-33 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+com.fireflisinfotech.ffitbt.app-debug-34 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/build/intermediates/merged_res/debug/mergeDebugResources
+com.fireflisinfotech.ffitbt.app-debug-35 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/src/debug/res
+com.fireflisinfotech.ffitbt.app-main-36 /home/ubuntu_16gb/raj_work_space/printer_mobile_clone/ffitbt_for_mobile/app/src/main/res

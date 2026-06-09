@@ -42,40 +42,63 @@ class FFitPrintService : PrintService() {
             return
         }
 
+        // Get localId on main thread to prevent "must be called from main thread" exception
+        val localId = printJob.info?.printerId?.localId ?: ""
+
         Thread {
             try {
                 android.util.Log.e("FFit", "Starting background thread for print job")
-                // ── Auto-connect using saved MAC (works without app open) ──
-                if (!BluetoothPrinter.isConnected) {
-                    android.util.Log.e("FFit", "Printer not connected. Attempting auto-connect...")
-                    val prefs = applicationContext
-                        .getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
-                    val mac  = PrinterPrefs.getSavedMac(prefs)
-                    val name = PrinterPrefs.getSavedName(prefs)
+                val prefs = applicationContext.getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
+                val mode = if (localId == "wifi_printer") "wifi" else "bluetooth"
 
-                    if (mac.isEmpty()) {
-                        android.util.Log.e("FFit", "No MAC address saved!")
-                        mainHandler.post {
-                            printJob.fail(
-                                "No printer configured. Open FFit BT app, " +
-                                "scan and connect your printer first."
-                            )
+                if (mode == "wifi") {
+                    val ip = PrinterPrefs.getSavedIp(prefs)
+                    val port = PrinterPrefs.getSavedPort(prefs)
+                    android.util.Log.e("FFit", "WiFi Mode: Connecting to $ip:$port...")
+                    
+                    if (!WifiPrinter.isConnected) {
+                        val connected = WifiPrinter.connect(ip, port)
+                        if (!connected) {
+                            android.util.Log.e("FFit", "WifiPrinter.connect($ip, $port) failed!")
+                            mainHandler.post {
+                                printJob.fail(
+                                    "Cannot connect to WiFi printer at $ip:$port. " +
+                                    "Make sure the printer is ON and connected to the same network."
+                                )
+                            }
+                            return@Thread
                         }
-                        return@Thread
                     }
+                } else {
+                    // ── Auto-connect using target Bluetooth MAC ──
+                    if (!BluetoothPrinter.isConnected) {
+                        android.util.Log.e("FFit", "Printer not connected. Attempting auto-connect to $localId...")
+                        val name = PrinterPrefs.getSavedName(prefs)
 
-                    val connected = BluetoothPrinter.connect(mac)
-                    if (!connected) {
-                        android.util.Log.e("FFit", "BluetoothPrinter.connect($mac) returned false!")
-                        mainHandler.post {
-                            printJob.fail(
-                                "Cannot connect to $name. " +
-                                "Make sure the printer is ON and in Bluetooth range."
-                            )
+                        if (localId.isEmpty()) {
+                            android.util.Log.e("FFit", "No Bluetooth MAC address received in printerId!")
+                            mainHandler.post {
+                                printJob.fail(
+                                    "No printer configured. Open FFit BT app, " +
+                                    "scan and connect your printer first."
+                                )
+                            }
+                            return@Thread
                         }
-                        return@Thread
+
+                        val connected = BluetoothPrinter.connect(localId)
+                        if (!connected) {
+                            android.util.Log.e("FFit", "BluetoothPrinter.connect($localId) returned false!")
+                            mainHandler.post {
+                                printJob.fail(
+                                    "Cannot connect to $name. " +
+                                    "Make sure the printer is ON and in Bluetooth range."
+                                )
+                            }
+                            return@Thread
+                        }
+                        android.util.Log.e("FFit", "Connected successfully!")
                     }
-                    android.util.Log.e("FFit", "Connected successfully!")
                 }
 
                 android.util.Log.e("FFit", "Copying PFD to temp file...")
@@ -127,12 +150,19 @@ class FFitPrintService : PrintService() {
                         croppedBmp.recycle()
                     }
 
-                    BluetoothPrinter.send(esc.build())
+                    if (mode == "wifi") {
+                        WifiPrinter.send(esc.build())
+                    } else {
+                        BluetoothPrinter.send(esc.build())
+                    }
                 }
                 renderer.close()
                 seekablePfd.close()
                 tempPdf.delete()
-                sendCompanyFooter()
+                sendCompanyFooter(mode)
+                if (mode == "wifi") {
+                    WifiPrinter.disconnect()
+                }
                 // ── Print job complete ──
                 android.util.Log.e("FFit", "Print job complete! Calling printJob.complete()")
                 mainHandler.post { printJob.complete() }
@@ -216,7 +246,7 @@ class FFitPrintService : PrintService() {
      * Isko call karne par billing content ke niche horizontal line, bada company name 
      * aur cut space print hoga.
      */
-    private fun sendCompanyFooter() {
+    private fun sendCompanyFooter(mode: String) {
         val esc = EscPos()
         
         // 1. Text ko center align karein aur space chodein
@@ -238,10 +268,14 @@ class FFitPrintService : PrintService() {
        
         
         // 4. Paper feed karein aur cut command bhein
-        esc.add(EscPos.FEED_3) // Print ke baad thoda extra paper rolls out karega
+        esc.add(byteArrayOf(0x1B, 0x64, 0x06)) // Print ke baad extra 6 lines feed karega taaki footer cut na ho
         esc.add(EscPos.CUT)    // Paper cutting command (agar printer support karta ho)
         
-        BluetoothPrinter.send(esc.build())
+        if (mode == "wifi") {
+            WifiPrinter.send(esc.build())
+        } else {
+            BluetoothPrinter.send(esc.build())
+        }
     }
 
     override fun onRequestCancelPrintJob(printJob: PrintJob) {
@@ -288,14 +322,29 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
     override fun onStartPrinterDiscovery(priorityList: MutableList<PrinterId>) {
         val prefs = service.applicationContext
             .getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
-        val mac  = PrinterPrefs.getSavedMac(prefs)
+        
+        val printers = mutableListOf<PrinterInfo>()
+
+        // 1. Add Bluetooth printer if configured
+        val mac = PrinterPrefs.getSavedMac(prefs)
         val name = PrinterPrefs.getSavedName(prefs)
+        if (mac.isNotEmpty()) {
+            val id = service.generatePrinterId(mac)
+            printers.add(buildPrinterInfo(id, name.ifEmpty { "FFit BT Printer" }, true))
+        }
 
-        if (mac.isEmpty()) return
+        // 2. Add WiFi printer if configured
+        val wifiIp = PrinterPrefs.getSavedIp(prefs)
+        val wifiSsid = PrinterPrefs.getSavedSsid(prefs)
+        if (wifiIp.isNotEmpty()) {
+            val id = service.generatePrinterId("wifi_printer")
+            val displayName = if (wifiSsid.isNotEmpty()) wifiSsid else "WiFi Printer ($wifiIp)"
+            printers.add(buildPrinterInfo(id, displayName, true))
+        }
 
-        val id = service.generatePrinterId(mac)
-        // Report as IDLE even if not currently connected — we auto-connect on print
-        addPrinters(listOf(buildPrinterInfo(id, name, true)))
+        if (printers.isNotEmpty()) {
+            addPrinters(printers)
+        }
     }
 
     override fun onStopPrinterDiscovery() {}
@@ -305,12 +354,18 @@ class FFitDiscoverySession(private val service: PrintService) : PrinterDiscovery
     override fun onStartPrinterStateTracking(printerId: PrinterId) {
         val prefs = service.applicationContext
             .getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
-        val mac  = PrinterPrefs.getSavedMac(prefs)
-        val name = PrinterPrefs.getSavedName(prefs)
-        if (mac.isEmpty()) return
-
-        val id = service.generatePrinterId(mac)
-        addPrinters(listOf(buildPrinterInfo(id, name, true)))
+        val localId = printerId.localId
+        
+        if (localId == "wifi_printer") {
+            val wifiIp = PrinterPrefs.getSavedIp(prefs)
+            val wifiSsid = PrinterPrefs.getSavedSsid(prefs)
+            val displayName = if (wifiSsid.isNotEmpty()) wifiSsid else "WiFi Printer ($wifiIp)"
+            addPrinters(listOf(buildPrinterInfo(printerId, displayName, true)))
+        } else {
+            // Assume Bluetooth MAC
+            val name = PrinterPrefs.getSavedName(prefs)
+            addPrinters(listOf(buildPrinterInfo(printerId, name.ifEmpty { "FFit BT Printer" }, true)))
+        }
     }
 
     override fun onStopPrinterStateTracking(printerId: PrinterId) {}

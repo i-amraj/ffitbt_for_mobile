@@ -1,86 +1,82 @@
 [
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/xml_printservice.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/xml/printservice.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/layout_item_step.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/layout/item_step.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_list_divider.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/list_divider.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_step_circle.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/step_circle.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_logo_bg.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/logo_bg.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_icon_circle.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/icon_circle.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_icon_circle.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/icon_circle.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_bottom_sheet_bg.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/bottom_sheet_bg.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/layout_bottom_sheet_printers.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/layout/bottom_sheet_printers.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_sheet_handle.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/sheet_handle.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_dot_green.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/dot_green.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_dot_red.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/dot_red.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/layout_item_step.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/layout/item_step.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_header_gradient.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/header_gradient.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_logo_bg.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/logo_bg.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_step_circle.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/step_circle.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_dot_red.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/dot_red.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_sheet_handle.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/sheet_handle.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/layout_bottom_sheet_printers.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/layout/bottom_sheet_printers.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/layout_item_printer.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/layout/item_printer.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_dot_green.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/dot_green.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/layout_activity_main.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/layout/activity_main.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_card_bg.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/card_bg.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/xml_printservice.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/xml/printservice.xml"
     },
     {
         "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/layout_item_printer.xml.flat",
         "source": "com.fireflisinfotech.ffitbt.app-main-36:/layout/item_printer.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_bottom_sheet_bg.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/bottom_sheet_bg.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_badge_bg.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/badge_bg.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/layout_activity_main.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/layout/activity_main.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_list_divider.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/list_divider.xml"
     },
     {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/mipmap-hdpi/ic_launcher.png"
-    },
-    {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_header_gradient.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/header_gradient.xml"
-    },
-    {
-        "merged": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-debug-34:/drawable_badge_bg.xml.flat",
-        "source": "/home/ubuntu_16gb/.gradle/daemon/8.7/com.fireflisinfotech.ffitbt.app-main-36:/drawable/badge_bg.xml"
+        "merged": "com.fireflisinfotech.ffitbt.app-debug-34:/drawable_card_bg.xml.flat",
+        "source": "com.fireflisinfotech.ffitbt.app-main-36:/drawable/card_bg.xml"
     }
 ]

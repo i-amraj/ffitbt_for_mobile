@@ -4,6 +4,7 @@ package com.fireflisinfotech.ffitbt.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,6 +14,8 @@ import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.fireflisinfotech.ffitbt.R;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.textfield.TextInputEditText;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -25,7 +28,16 @@ public final class ActivityMainBinding implements ViewBinding {
   public final MaterialButton btnDisconnect;
 
   @NonNull
+  public final MaterialButton btnEnableServiceBanner;
+
+  @NonNull
+  public final MaterialButton btnOpenOEMSettings;
+
+  @NonNull
   public final MaterialButton btnOpenPrintSettings;
+
+  @NonNull
+  public final MaterialButton btnSaveWifi;
 
   @NonNull
   public final MaterialButton btnScan;
@@ -34,7 +46,34 @@ public final class ActivityMainBinding implements ViewBinding {
   public final MaterialButton btnTestPrint;
 
   @NonNull
+  public final CardView cardStatus;
+
+  @NonNull
   public final CardView cardTestPrint;
+
+  @NonNull
+  public final TextInputEditText etWifiIp;
+
+  @NonNull
+  public final TextInputEditText etWifiPort;
+
+  @NonNull
+  public final TextInputEditText etWifiSsid;
+
+  @NonNull
+  public final TextInputEditText etWifiSubnet;
+
+  @NonNull
+  public final LinearLayout layoutBluetooth;
+
+  @NonNull
+  public final CardView layoutOEMTroubleshooting;
+
+  @NonNull
+  public final LinearLayout layoutServiceWarning;
+
+  @NonNull
+  public final LinearLayout layoutWifi;
 
   @NonNull
   public final View statusDot;
@@ -52,6 +91,9 @@ public final class ActivityMainBinding implements ViewBinding {
   public final ItemStepBinding step4;
 
   @NonNull
+  public final TabLayout tabLayout;
+
+  @NonNull
   public final TextView tvMac;
 
   @NonNull
@@ -61,23 +103,42 @@ public final class ActivityMainBinding implements ViewBinding {
   public final TextView tvStatus;
 
   private ActivityMainBinding(@NonNull CoordinatorLayout rootView,
-      @NonNull MaterialButton btnDisconnect, @NonNull MaterialButton btnOpenPrintSettings,
-      @NonNull MaterialButton btnScan, @NonNull MaterialButton btnTestPrint,
-      @NonNull CardView cardTestPrint, @NonNull View statusDot, @NonNull ItemStepBinding step1,
+      @NonNull MaterialButton btnDisconnect, @NonNull MaterialButton btnEnableServiceBanner,
+      @NonNull MaterialButton btnOpenOEMSettings, @NonNull MaterialButton btnOpenPrintSettings,
+      @NonNull MaterialButton btnSaveWifi, @NonNull MaterialButton btnScan,
+      @NonNull MaterialButton btnTestPrint, @NonNull CardView cardStatus,
+      @NonNull CardView cardTestPrint, @NonNull TextInputEditText etWifiIp,
+      @NonNull TextInputEditText etWifiPort, @NonNull TextInputEditText etWifiSsid,
+      @NonNull TextInputEditText etWifiSubnet, @NonNull LinearLayout layoutBluetooth,
+      @NonNull CardView layoutOEMTroubleshooting, @NonNull LinearLayout layoutServiceWarning,
+      @NonNull LinearLayout layoutWifi, @NonNull View statusDot, @NonNull ItemStepBinding step1,
       @NonNull ItemStepBinding step2, @NonNull ItemStepBinding step3,
-      @NonNull ItemStepBinding step4, @NonNull TextView tvMac, @NonNull TextView tvServiceBadge,
-      @NonNull TextView tvStatus) {
+      @NonNull ItemStepBinding step4, @NonNull TabLayout tabLayout, @NonNull TextView tvMac,
+      @NonNull TextView tvServiceBadge, @NonNull TextView tvStatus) {
     this.rootView = rootView;
     this.btnDisconnect = btnDisconnect;
+    this.btnEnableServiceBanner = btnEnableServiceBanner;
+    this.btnOpenOEMSettings = btnOpenOEMSettings;
     this.btnOpenPrintSettings = btnOpenPrintSettings;
+    this.btnSaveWifi = btnSaveWifi;
     this.btnScan = btnScan;
     this.btnTestPrint = btnTestPrint;
+    this.cardStatus = cardStatus;
     this.cardTestPrint = cardTestPrint;
+    this.etWifiIp = etWifiIp;
+    this.etWifiPort = etWifiPort;
+    this.etWifiSsid = etWifiSsid;
+    this.etWifiSubnet = etWifiSubnet;
+    this.layoutBluetooth = layoutBluetooth;
+    this.layoutOEMTroubleshooting = layoutOEMTroubleshooting;
+    this.layoutServiceWarning = layoutServiceWarning;
+    this.layoutWifi = layoutWifi;
     this.statusDot = statusDot;
     this.step1 = step1;
     this.step2 = step2;
     this.step3 = step3;
     this.step4 = step4;
+    this.tabLayout = tabLayout;
     this.tvMac = tvMac;
     this.tvServiceBadge = tvServiceBadge;
     this.tvStatus = tvStatus;
@@ -116,9 +177,27 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnEnableServiceBanner;
+      MaterialButton btnEnableServiceBanner = ViewBindings.findChildViewById(rootView, id);
+      if (btnEnableServiceBanner == null) {
+        break missingId;
+      }
+
+      id = R.id.btnOpenOEMSettings;
+      MaterialButton btnOpenOEMSettings = ViewBindings.findChildViewById(rootView, id);
+      if (btnOpenOEMSettings == null) {
+        break missingId;
+      }
+
       id = R.id.btnOpenPrintSettings;
       MaterialButton btnOpenPrintSettings = ViewBindings.findChildViewById(rootView, id);
       if (btnOpenPrintSettings == null) {
+        break missingId;
+      }
+
+      id = R.id.btnSaveWifi;
+      MaterialButton btnSaveWifi = ViewBindings.findChildViewById(rootView, id);
+      if (btnSaveWifi == null) {
         break missingId;
       }
 
@@ -134,9 +213,63 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.cardStatus;
+      CardView cardStatus = ViewBindings.findChildViewById(rootView, id);
+      if (cardStatus == null) {
+        break missingId;
+      }
+
       id = R.id.cardTestPrint;
       CardView cardTestPrint = ViewBindings.findChildViewById(rootView, id);
       if (cardTestPrint == null) {
+        break missingId;
+      }
+
+      id = R.id.etWifiIp;
+      TextInputEditText etWifiIp = ViewBindings.findChildViewById(rootView, id);
+      if (etWifiIp == null) {
+        break missingId;
+      }
+
+      id = R.id.etWifiPort;
+      TextInputEditText etWifiPort = ViewBindings.findChildViewById(rootView, id);
+      if (etWifiPort == null) {
+        break missingId;
+      }
+
+      id = R.id.etWifiSsid;
+      TextInputEditText etWifiSsid = ViewBindings.findChildViewById(rootView, id);
+      if (etWifiSsid == null) {
+        break missingId;
+      }
+
+      id = R.id.etWifiSubnet;
+      TextInputEditText etWifiSubnet = ViewBindings.findChildViewById(rootView, id);
+      if (etWifiSubnet == null) {
+        break missingId;
+      }
+
+      id = R.id.layoutBluetooth;
+      LinearLayout layoutBluetooth = ViewBindings.findChildViewById(rootView, id);
+      if (layoutBluetooth == null) {
+        break missingId;
+      }
+
+      id = R.id.layoutOEMTroubleshooting;
+      CardView layoutOEMTroubleshooting = ViewBindings.findChildViewById(rootView, id);
+      if (layoutOEMTroubleshooting == null) {
+        break missingId;
+      }
+
+      id = R.id.layoutServiceWarning;
+      LinearLayout layoutServiceWarning = ViewBindings.findChildViewById(rootView, id);
+      if (layoutServiceWarning == null) {
+        break missingId;
+      }
+
+      id = R.id.layoutWifi;
+      LinearLayout layoutWifi = ViewBindings.findChildViewById(rootView, id);
+      if (layoutWifi == null) {
         break missingId;
       }
 
@@ -174,6 +307,12 @@ public final class ActivityMainBinding implements ViewBinding {
       }
       ItemStepBinding binding_step4 = ItemStepBinding.bind(step4);
 
+      id = R.id.tabLayout;
+      TabLayout tabLayout = ViewBindings.findChildViewById(rootView, id);
+      if (tabLayout == null) {
+        break missingId;
+      }
+
       id = R.id.tvMac;
       TextView tvMac = ViewBindings.findChildViewById(rootView, id);
       if (tvMac == null) {
@@ -193,8 +332,11 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, btnDisconnect,
-          btnOpenPrintSettings, btnScan, btnTestPrint, cardTestPrint, statusDot, binding_step1,
-          binding_step2, binding_step3, binding_step4, tvMac, tvServiceBadge, tvStatus);
+          btnEnableServiceBanner, btnOpenOEMSettings, btnOpenPrintSettings, btnSaveWifi, btnScan,
+          btnTestPrint, cardStatus, cardTestPrint, etWifiIp, etWifiPort, etWifiSsid, etWifiSubnet,
+          layoutBluetooth, layoutOEMTroubleshooting, layoutServiceWarning, layoutWifi, statusDot,
+          binding_step1, binding_step2, binding_step3, binding_step4, tabLayout, tvMac,
+          tvServiceBadge, tvStatus);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

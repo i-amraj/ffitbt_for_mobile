@@ -2,6 +2,6 @@
 <!-- This metadata tells Android's PrintManager about our service -->
 <!-- settingsActivity: launches when user taps Settings in print dialog -->
 <printer-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity=".MainActivity"
-    android:addPrintersActivity=".MainActivity"
+    android:settingsActivity="com.fireflisinfotech.ffitbt.MainActivity"
+    android:addPrintersActivity="com.fireflisinfotech.ffitbt.MainActivity"
     android:vendor="FFit BT by Fire Flies Infotech"/>
