@@ -27,6 +27,17 @@ class FFitPrintService : PrintService() {
         val cancelledRestartJobs = java.util.Collections.synchronizedSet(mutableSetOf<String>())
         private val printExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
+        private fun sendUpdateBroadcast(context: android.content.Context) {
+            try {
+                val intent = android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE").apply {
+                    setPackage(context.packageName)
+                }
+                context.sendBroadcast(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         fun cancelJob(context: android.content.Context, jobId: String): Boolean {
             // 1. Try to cancel system print job
             synchronized(activeJobs) {
@@ -44,7 +55,7 @@ class FFitPrintService : PrintService() {
                             val db = PrintDatabaseHelper(context)
                             db.updateStatus(jobId, "cancelled")
                             iterator.remove()
-                            context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            sendUpdateBroadcast(context)
                             return true
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -58,7 +69,7 @@ class FFitPrintService : PrintService() {
             try {
                 val db = PrintDatabaseHelper(context)
                 db.updateStatus(jobId, "cancelled")
-                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                sendUpdateBroadcast(context)
                 return true
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -82,7 +93,7 @@ class FFitPrintService : PrintService() {
 
             // Mark status as queued in DB
             db.updateStatus(jobId, "queued")
-            context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+            sendUpdateBroadcast(context)
 
             printExecutor.submit {
                 val prefs = context.getSharedPreferences("ffitbt", Context.MODE_PRIVATE)
@@ -93,12 +104,12 @@ class FFitPrintService : PrintService() {
                     if (cancelledRestartJobs.contains(jobId)) {
                         db.updateStatus(jobId, "cancelled")
                         cancelledRestartJobs.remove(jobId)
-                        context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                        sendUpdateBroadcast(context)
                         return@submit
                     }
 
                     db.updateStatus(jobId, "printing")
-                    context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast(context)
 
                     // Connect to printer
                     if (mode == "wifi") {
@@ -108,7 +119,7 @@ class FFitPrintService : PrintService() {
                             val connected = WifiPrinter.connect(ip, port)
                             if (!connected) {
                                 db.updateStatus(jobId, "failed", "Cannot connect to WiFi printer at $ip:$port.")
-                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                sendUpdateBroadcast(context)
                                 return@submit
                             }
                         }
@@ -116,14 +127,14 @@ class FFitPrintService : PrintService() {
                         if (!BluetoothPrinter.isConnected) {
                             if (target.isEmpty()) {
                                 db.updateStatus(jobId, "failed", "No Bluetooth MAC address configured.")
-                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                sendUpdateBroadcast(context)
                                 return@submit
                             }
                             val name = PrinterPrefs.getSavedName(prefs)
                             val connected = BluetoothPrinter.connect(target)
                             if (!connected) {
                                 db.updateStatus(jobId, "failed", "Cannot connect to $name.")
-                                context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                                sendUpdateBroadcast(context)
                                 return@submit
                             }
                         }
@@ -132,7 +143,7 @@ class FFitPrintService : PrintService() {
                     if (cancelledRestartJobs.contains(jobId)) {
                         db.updateStatus(jobId, "cancelled")
                         cancelledRestartJobs.remove(jobId)
-                        context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                        sendUpdateBroadcast(context)
                         return@submit
                     }
 
@@ -189,10 +200,21 @@ class FFitPrintService : PrintService() {
                     e.printStackTrace()
                     db.updateStatus(jobId, "failed", e.message ?: "Reprint failed")
                 } finally {
-                    context.sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast(context)
                 }
             }
             return true
+        }
+    }
+
+    private fun sendUpdateBroadcast() {
+        try {
+            val intent = android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE").apply {
+                setPackage(packageName)
+            }
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -245,14 +267,14 @@ class FFitPrintService : PrintService() {
         activeJobs.add(printJob)
 
         // Broadcast queue update
-        sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+        sendUpdateBroadcast()
 
         printExecutor.submit {
             try {
                 if (isJobCancelledMain(printJob)) {
                     activeJobs.remove(printJob)
                     db.updateStatus(jobId, "cancelled")
-                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast()
                     return@submit
                 }
 
@@ -269,12 +291,12 @@ class FFitPrintService : PrintService() {
                     db.updateStatus(jobId, "failed", "Could not cache PDF data: ${e.message}")
                     mainHandler.post { printJob.fail("Could not cache PDF data: ${e.message}") }
                     activeJobs.remove(printJob)
-                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast()
                     return@submit
                 }
 
                 db.updateStatus(jobId, "printing")
-                sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                sendUpdateBroadcast()
 
                 // Start print job on main thread
                 var startOk = false
@@ -293,7 +315,7 @@ class FFitPrintService : PrintService() {
                 if (!startOk && !isJobCancelledMain(printJob)) {
                     db.updateStatus(jobId, "failed", "Could not start print job.")
                     activeJobs.remove(printJob)
-                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast()
                     return@submit
                 }
 
@@ -307,7 +329,7 @@ class FFitPrintService : PrintService() {
                             db.updateStatus(jobId, "failed", "Cannot connect to WiFi printer at $ip:$port.")
                             mainHandler.post { printJob.fail("Cannot connect to WiFi printer at $ip:$port.") }
                             activeJobs.remove(printJob)
-                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            sendUpdateBroadcast()
                             return@submit
                         }
                     }
@@ -317,7 +339,7 @@ class FFitPrintService : PrintService() {
                             db.updateStatus(jobId, "failed", "No Bluetooth MAC address configured.")
                             mainHandler.post { printJob.fail("No printer configured.") }
                             activeJobs.remove(printJob)
-                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            sendUpdateBroadcast()
                             return@submit
                         }
                         val name = PrinterPrefs.getSavedName(prefs)
@@ -326,7 +348,7 @@ class FFitPrintService : PrintService() {
                             db.updateStatus(jobId, "failed", "Cannot connect to $name.")
                             mainHandler.post { printJob.fail("Cannot connect to $name.") }
                             activeJobs.remove(printJob)
-                            sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                            sendUpdateBroadcast()
                             return@submit
                         }
                     }
@@ -336,7 +358,7 @@ class FFitPrintService : PrintService() {
                     db.updateStatus(jobId, "cancelled")
                     mainHandler.post { printJob.cancel() }
                     activeJobs.remove(printJob)
-                    sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                    sendUpdateBroadcast()
                     return@submit
                 }
 
@@ -398,7 +420,7 @@ class FFitPrintService : PrintService() {
                 mainHandler.post { printJob.fail("Crash prevented: ${e.message}") }
             } finally {
                 activeJobs.remove(printJob)
-                sendBroadcast(android.content.Intent("com.fireflisinfotech.ffitbt.UPDATE_QUEUE"))
+                sendUpdateBroadcast()
             }
         }
     }

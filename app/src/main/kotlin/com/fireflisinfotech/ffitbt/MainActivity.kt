@@ -38,6 +38,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val refreshHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val refreshRunnable = object : Runnable {
+        override fun run() {
+            loadPrintLogs()
+        }
+    }
+
     // ─────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +100,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        refreshHandler.removeCallbacks(refreshRunnable)
         try {
             unregisterReceiver(queueReceiver)
         } catch (e: Exception) {
@@ -618,6 +626,13 @@ class MainActivity : AppCompatActivity() {
             } else {
                 logAdapter?.updateData(logs)
             }
+        }
+
+        // Auto-refresh logic if any job is queued or printing
+        refreshHandler.removeCallbacks(refreshRunnable)
+        val hasActive = logs.any { it.status == "queued" || it.status == "printing" }
+        if (hasActive) {
+            refreshHandler.postDelayed(refreshRunnable, 1000)
         }
     }
 
